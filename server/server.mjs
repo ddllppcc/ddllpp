@@ -87,8 +87,8 @@ async function ask(wallet, question) {
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key() },
     body: JSON.stringify({
       model: await pickModel(),
-      temperature: 0.6,
-      max_tokens: 260,
+      max_tokens: 320,
+      thinking: { type: 'disabled' },
       messages: [
         { role: 'system', content: SYSTEM },
         { role: 'user', content: `facts: ${JSON.stringify(f)}\n\nquestion: ${question}` },
@@ -96,7 +96,7 @@ async function ask(wallet, question) {
     }),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error('model ' + r.status);
+  if (!r.ok) throw new Error('model ' + r.status + ' ' + (j.error?.message || ''));
   return (j.choices?.[0]?.message?.content || '').trim();
 }
 
