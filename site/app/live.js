@@ -477,6 +477,78 @@
   $('.cmd .k').addEventListener('click', () => { input.value = ''; input.placeholder = wallet ? 'ask your double anything' : 'paste a Solana wallet and press enter'; input.focus(); });
   addEventListener('resize', () => { if (current === 'Shadow') requestAnimationFrame(drawShadow); });
 
+
+  // ------------------------------------------------------------- full screen + onboarding
+  const FKEY = 'ddllpp.full', OKEY = 'ddllpp.onboarded';
+  const store = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+  const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  function setFull(on) {
+    document.documentElement.classList.toggle('full', on);
+    $('#full').classList.toggle('on', on);
+    store(FKEY, on ? '1' : undefined);
+    setTimeout(() => (current === 'Shadow' ? drawShadow() : draw()), 520);
+  }
+  $('#full').addEventListener('click', () => setFull(!document.documentElement.classList.contains('full')));
+  addEventListener('keydown', (e) => { if (e.key === 'f' && document.activeElement !== input && !e.metaKey && !e.ctrlKey) setFull(!document.documentElement.classList.contains('full')); });
+  if (stored(FKEY)) setFull(true);
+
+  const SAMPLE = 'CebN5WGQ4jvEPvsVU4EoHEpgzq1VV7AbicfhtW4xC9iM';
+  const steps = [
+    { el: '.cmd', t: 'Pick an original', p: 'paste any Solana wallet here and press enter. no wallet handy? take a busy one.', extra: 'Try a busy wallet', act: () => { if (!wallet) load(SAMPLE); } },
+    { el: '.chart', t: 'Read the seam', p: 'above: what the wallet really did. below: its double, asleep, the same shape. hover the bars, click to open solscan.' },
+    { el: '.side', t: 'Every angle', p: 'shadow shows its clock. cluster shows who it trades with. policy is what the double keeps.' },
+    { el: '.rail', t: 'Its fingerprint', p: 'real numbers from the ledger, and the latest transactions.' },
+    { el: '.cmd', t: 'Ask your double', p: 'type a question instead of a wallet. it answers from what it read.' },
+  ];
+  let ob = null, si = 0;
+  function place() {
+    const s = steps[si], r = $(s.el).getBoundingClientRect(), pad = 6;
+    const ring = ob.querySelector('.ring'), card = ob.querySelector('.card');
+    Object.assign(ring.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
+    const cw = 300, ch = card.offsetHeight || 200;
+    let x = r.right + 18, y = r.top;
+    if (x + cw > innerWidth - 12) x = r.left - cw - 18;
+    if (x < 12) { x = Math.min(Math.max(12, r.left), innerWidth - cw - 12); y = r.top - ch - 18; if (y < 12) y = r.bottom + 18; }
+    y = Math.max(12, Math.min(innerHeight - ch - 12, y));
+    Object.assign(card.style, { left: x + 'px', top: y + 'px' });
+  }
+  function render() {
+    const s = steps[si], last = si === steps.length - 1;
+    ob.querySelector('.card').innerHTML = `<small>${si + 1} / ${steps.length}</small><h4>${s.t}</h4><p>${s.p}</p><div class="row">${s.extra ? `<button data-x>${s.extra}</button>` : ''}<button ${s.extra ? 'class="ghost"' : ''} data-n>${last ? 'Open full screen' : 'Next'}</button><button class="ghost" data-s>Skip</button></div>`;
+    place();
+    requestAnimationFrame(place);
+  }
+  function endOb(full) {
+    ob.remove(); ob = null;
+    store(OKEY, '1');
+    log('finished onboarding');
+    if (full) setFull(true);
+    if (!wallet) input.focus();
+  }
+  function startOb() {
+    if (ob) return;
+    si = 0;
+    ob = document.createElement('div');
+    ob.className = 'ob';
+    ob.innerHTML = '<div class="ring"></div><div class="card"></div>';
+    document.body.appendChild(ob);
+    ob.addEventListener('click', (e) => {
+      if (e.target.closest('[data-x]')) { steps[si].act(); si++; render(); }
+      else if (e.target.closest('[data-n]')) { if (si === steps.length - 1) endOb(true); else { si++; render(); } }
+      else if (e.target.closest('[data-s]')) endOb(true);
+    });
+    render();
+  }
+  addEventListener('resize', () => ob && place());
+  if (!stored(OKEY) && innerWidth > 900) setTimeout(startOb, 700);
+  // the help mark in the prompt reopens it
+  const help = document.createElement('span');
+  help.className = 'k';
+  help.style.cursor = 'pointer';
+  help.innerHTML = '<b>?</b>tour';
+  help.addEventListener('click', startOb);
+  cmd.appendChild(help);
+
   // ------------------------------------------------------------- start
   fp.innerHTML = '<em style="grid-column:1/-1;text-align:left">open a wallet to read its style</em>';
   $('.rail .card h3 span').textContent = 'real on-chain stats';
