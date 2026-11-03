@@ -155,6 +155,8 @@
   .half[data-state="done"] .line { opacity: 0; visibility: hidden; transform: translateY(-8px); transition: opacity 140ms var(--out), transform 180ms var(--out), visibility 0s 180ms; }
   .half[data-state="done"] .msg { opacity: 1; visibility: visible; transform: none; transition-delay: 90ms, 90ms, 0s; }
 
+  .open { display: none; text-decoration-thickness: 3px; }
+  .half[data-state="done"] .open { display: block; }
   @keyframes dots { to { width: 3ch; } }
   @keyframes blink { 50% { opacity: 0; } }
 
@@ -276,6 +278,7 @@
     .connect { padding: 0 6px; font-size: 12px; letter-spacing: .06em; }
     .connect > span { margin-right: -.06em; }
     .tag { padding: 0 10px; gap: 8px; font-size: 11px; justify-content: center; }
+    .half[data-state="done"] .how:not(.open) { display: none; }
     .how { align-self: flex-end; padding: 13px 0 2px; font-size: 11px; letter-spacing: .1em; line-height: 1.5; white-space: normal; text-align: right; text-underline-offset: 4px; }
     .how > span { margin-right: -.1em; }
     #ca { font-size: 11px; padding: 14px 4px; }
@@ -316,6 +319,7 @@
         <button class="connect" id="connect" type="button" data-hit><span class="idle">Connect &amp; spawn</span><span class="busy">Spawning</span></button>
         <p class="tag" aria-hidden="true"><i></i><span class="addr"></span></p>
       </div>
+      <a class="how open" href="app/" data-hit><span>Open terminal</span></a>
       <button class="how" id="how" type="button" aria-haspopup="dialog" aria-controls="memo" data-hit><span>Spawn locally via MCP</span></button>
     </div>
   </section>
@@ -338,6 +342,7 @@
         <button class="connect" type="button" tabindex="-1" data-hit data-proxy="connect"><span class="idle">Connect &amp; spawn</span><span class="busy">Spawning</span></button>
         <p class="tag"><i></i><span class="addr"></span></p>
       </div>
+      <a class="how open" href="app/" tabindex="-1" data-hit><span>Open terminal</span></a>
       <button class="how" type="button" tabindex="-1" data-hit data-proxy="how"><span>Spawned locally via MCP</span></button>
     </div>
   </section>

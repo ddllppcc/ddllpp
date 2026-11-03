@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ddllpp | terminal</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Martian+Mono:wdth,wght@75..112.5,300..600&display=swap" rel="stylesheet">
+<style>
+  /* ddllpp terminal: the original above the seam, the double below it */
+  :root {
+    --pink: #ff2d87;
+    --bg: #000;
+    --line: #1c1c1c;
+    --line2: #2a2a2a;
+    --tx: #f3f3f3;
+    --tx2: #8b8b8b;
+    --tx3: #555;
+    --disp: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--pink); color: var(--tx); overflow: hidden; }
+  body { font: 400 13px/1.4 var(--disp); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* the window floats on the brand stripes, like a screenshot on a desk */
+  .desk { position: fixed; inset: 0; background: var(--pink) url(stripes.jpg) center / cover; }
+  .win {
+    position: absolute; inset: 5.5vh 4.5vw; display: grid; grid-template-columns: 216px minmax(0, 1fr) 340px; grid-template-rows: 44px minmax(0, 1fr) 46px;
+    background: var(--bg); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 0 0 1px #000, 0 40px 90px -30px rgba(0, 0, 0, .55);
+  }
+
+  /* ---------------------------------------------------------------- side */
+  .side { grid-row: 1 / 4; border-right: 1px solid var(--line); padding: 18px 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 2px 10px 20px; font: 900 22px/1 var(--disp); font-stretch: 62%; letter-spacing: .01em; }
+  .logo img { height: 22px; display: block; filter: invert(1); }
+  .grp { margin: 14px 10px 6px; font: 500 10.5px/1 var(--mono); color: var(--tx3); letter-spacing: .06em; text-transform: uppercase; }
+  .nav { display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 10px; border-radius: 8px; color: var(--tx2); font-size: 14px; }
+  .nav svg { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  .nav:hover { color: var(--tx); }
+  .nav.on { background: #141414; color: var(--tx); }
+  .nav.on svg { stroke: var(--pink); }
+  .nav b { margin-left: auto; font: 500 11px/1 var(--mono); color: var(--pink); }
+  .side .sp { flex: 1; }
+
+  /* ---------------------------------------------------------------- top tape */
+  .tape { grid-column: 2 / 4; display: flex; align-items: center; gap: 26px; padding: 0 18px; border-bottom: 1px solid var(--line); overflow: hidden; white-space: nowrap; font: 400 11.5px/1 var(--mono); color: var(--tx2); }
+  .tape .w { display: inline-flex; align-items: center; gap: 9px; }
+  .tape .w i { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); }
+  .tape .w i.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tx3); }
+  .tape .w em { font-style: normal; color: var(--tx); }
+  .tape svg { width: 54px; height: 14px; }
+
+  /* ---------------------------------------------------------------- main */
+  .main { grid-column: 2; grid-row: 2; position: relative; display: grid; grid-template-rows: 54px minmax(0, 1fr); min-width: 0; }
+  .head { display: flex; align-items: center; gap: 14px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+  .pair { display: flex; align-items: center; gap: 10px; font: 800 17px/1 var(--disp); font-stretch: 80%; white-space: nowrap; }
+  .pair .sw { font: 400 12px/1 var(--mono); color: var(--tx3); }
+  .pair .me { color: var(--pink); }
+  .chip { display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line2); font: 500 11px/1 var(--mono); color: var(--tx2); white-space: nowrap; }
+  .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--pink); animation: blink 1.4s steps(1) infinite; }
+  .head .sp { flex: 1; }
+  .seg { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #0e0e0e; }
+  .seg button { height: 24px; padding: 0 10px; border-radius: 6px; font: 500 11px/1 var(--mono); color: var(--tx2); }
+  .seg button.on { background: #1d1d1d; color: var(--tx); }
+  .tool { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; color: var(--tx2); }
+  .tool svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  .tool:hover, .tool.on { background: #121212; color: var(--tx); }
+
+  .chart { position: relative; min-height: 0; overflow: hidden; }
+  .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+  .legend { position: absolute; left: 18px; top: 14px; display: grid; gap: 7px; font: 400 11.5px/1 var(--mono); color: var(--tx2); pointer-events: none; }
+  .legend b { color: var(--tx); font-weight: 500; }
+  .legend .p, .legend .p b { color: var(--pink); }
+  .tip {
+    position: absolute; z-index: 3; width: 240px; padding: 12px 13px; border-radius: 10px; background: #0b0b0b; border: 1px solid var(--line2);
+    font: 400 11.5px/1.6 var(--mono); color: var(--tx2); pointer-events: none; opacity: 0; transition: opacity .12s;
+  }
+  .tip.on { opacity: 1; }
+  .tip .t { color: var(--tx); font: 800 12px/1 var(--disp); letter-spacing: .16em; text-transform: uppercase; margin-bottom: 9px; }
+  .tip .r { display: flex; justify-content: space-between; gap: 10px; }
+  .tip .r span:last-child { color: var(--tx); }
+  .tip .r.d span:last-child { color: var(--pink); }
+  .tip hr { border: 0; border-top: 1px dashed var(--line2); margin: 8px 0; }
+
+  /* ---------------------------------------------------------------- right */
+  .rail { grid-column: 3; grid-row: 2; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .card { padding: 16px 16px 14px; border-bottom: 1px solid var(--line); }
+  .card h3 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 13px; font: 800 11px/1 var(--disp); letter-spacing: .2em; text-transform: uppercase; color: var(--tx); }
+  .card h3 span { font: 400 10.5px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--tx3); }
+  .fp { display: grid; grid-template-columns: 1fr 86px 1fr; align-items: center; row-gap: 10px; font: 400 10.5px/1 var(--mono); color: var(--tx2); }
+  .fp .l, .fp .r { height: 6px; position: relative; }
+  .fp .l i, .fp .r i { position: absolute; top: 0; bottom: 0; background: var(--tx); }
+  .fp .l i { right: 0; }
+  .fp .r i { left: 0; background: var(--pink); }
+  .fp em { font-style: normal; text-align: center; }
+  .feed { flex: 1; overflow: hidden; padding: 0 0 4px; }
+  .ev { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: baseline; padding: 9px 16px; font: 400 11px/1.45 var(--mono); color: var(--tx2); border-bottom: 1px solid #0f0f0f; }
+  .ev time { color: var(--tx3); }
+  .ev b { color: var(--tx); font-weight: 500; }
+  .ev .s { font-size: 10px; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--line2); }
+  .ev .s.m { border-color: #5a1534; color: var(--pink); }
+  .ev .s.f { background: var(--pink); border-color: var(--pink); color: #000; }
+  .key { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font: 400 11px/1 var(--mono); color: var(--tx3); }
+  .key span:nth-child(even) { color: var(--tx); text-align: right; }
+  .revoke { margin-top: 13px; width: 100%; height: 32px; border-radius: 8px; border: 1px solid var(--line2); font: 800 11px/1 var(--disp); letter-spacing: .2em; text-transform: uppercase; }
+  .revoke:hover { border-color: var(--pink); color: var(--pink); }
+
+  /* ---------------------------------------------------------------- prompt */
+  .cmd { grid-column: 2 / 4; display: flex; align-items: center; gap: 12px; padding: 0 18px; border-top: 1px solid var(--line); font: 400 12.5px/1 var(--mono); color: var(--tx2); }
+  .cmd .gt { color: var(--pink); }
+  .cmd .in { color: var(--tx); white-space: pre; }
+  .cmd .cur { width: 8px; height: 15px; background: var(--pink); animation: blink 1s steps(1) infinite; }
+  .cmd .sp { flex: 1; }
+  .cmd .k { color: var(--tx3); font-size: 11px; white-space: nowrap; }
+  .cmd .k b { color: var(--tx2); font-weight: 400; border: 1px solid var(--line2); border-radius: 4px; padding: 2px 5px; margin-right: 6px; }
+
+  /* the site's stub: the frame is real, the double is not awake yet */
+  .soon { position: absolute; inset: 0; display: none; place-items: center; z-index: 4; pointer-events: none; }
+  .soon p { margin: 0; padding: 14px 20px 16px; background: var(--pink); color: #000; font: 900 30px/1 var(--disp); font-stretch: 62%; text-transform: uppercase; letter-spacing: .01em; text-align: center; }
+  html.stub .soon { display: grid; }
+  html.stub .legend, html.stub .feed, html.stub .tape .w, html.stub .fp, html.stub .key, html.stub .tip, html.stub .pair, html.stub .chip { visibility: hidden; }
+
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (max-width: 900px) {
+    .win { grid-template-columns: minmax(0, 1fr); inset: 12px; border-radius: 14px; }
+    .side, .rail { display: none; }
+    .main { grid-column: 1; }
+    .tape, .cmd { grid-column: 1; }
+    .head .seg, .head .tool, .cmd .k { display: none; }
+    .soon p { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="desk">
+  <div class="win">
+    <aside class="side">
+      <a class="logo" href="../"><img src="../heads.png" alt=""><span>ddllpp</span></a>
+      <div class="grp">Doubles</div>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Spawn</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><circle cx="5.5" cy="8" r="3.5"/><circle cx="10.5" cy="8" r="3.5"/></svg>My doubles<b class="full">5</b></a>
+      <div class="grp">Analysis</div>
+      <a class="nav on" href="#"><svg viewBox="0 0 16 16"><path d="M8 1.5v13M2 5.5l3 2 3-3 3 2.5 3-2M2 10.5l3-2 3 3 3-2.5 3 2"/></svg>Mirror</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M2 12c3 0 3-8 6-8s3 8 6 8"/></svg>Shadow</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/><circle cx="3" cy="3.5" r="1.5"/><circle cx="13" cy="4" r="1.5"/><circle cx="12.5" cy="12.5" r="1.5"/><path d="M4.2 4.6 6.6 6.8M11.8 4.9 9.5 6.9M11.4 11.4 9.4 9.4"/></svg>Cluster</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M8 2 13.5 5v6L8 14 2.5 11V5z"/><path d="M8 5.5 10.5 7v3L8 11.5 5.5 10V7z"/></svg>Policy</a>
+      <div class="grp">Agent</div>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M4 5 1.5 8 4 11M12 5l2.5 3L12 11M9.5 3l-3 10"/></svg>MCP</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><circle cx="5.5" cy="10.5" r="3"/><path d="m7.6 8.4 6-6M11.5 4.5l2 2"/></svg>Session key</a>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M3 3.5h10M3 6.5h10M3 9.5h6M3 12.5h8"/></svg>Logs</a>
+      <div class="sp"></div>
+      <a class="nav" href="#"><svg viewBox="0 0 16 16"><path d="M8 2a4 4 0 0 0-4 4v3l-1.5 2.5h11L12 9V6a4 4 0 0 0-4-4zM6.5 13.5a1.5 1.5 0 0 0 3 0"/></svg>Alerts<b class="full">2</b></a>
+      <a class="nav" href="../"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg>ddllpp.cc</a>
+    </aside>
+
+    <div class="tape" id="tape"></div>
+
+    <section class="main">
+      <div class="head">
+        <div class="pair"><span>7xKp…f3Qa</span><span class="sw">⇄</span><span class="me">your double</span></div>
+        <span class="chip"><i></i>shadowing</span>
+        <div class="sp"></div>
+        <div class="seg" id="seg"><button>1H</button><button class="on">4H</button><button>1D</button><button>7D</button><button>All</button></div>
+        <button class="tool" type="button" title="Flip the mirror" id="flip"><svg viewBox="0 0 16 16"><path d="M1 8h14M4 6 8 2l4 4M4 10l4 4 4-4"/></svg></button>
+      </div>
+      <div class="chart" id="chart">
+        <svg id="svg"></svg>
+        <div class="legend">
+          <div>original &nbsp;<b>7xKp…f3Qa</b> &nbsp;· above the seam</div>
+          <div class="p">double &nbsp;&nbsp;&nbsp;<b>yours</b> &nbsp;· mirrored below, moves first</div>
+        </div>
+        <div class="tip" id="tip"></div>
+        <div class="soon"><p>Your double<br>wakes at release.</p></div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="card">
+        <h3>Fingerprint <span>original | double</span></h3>
+        <div class="fp" id="fp"></div>
+      </div>
+      <div class="card" style="padding-bottom:4px;border-bottom:0"><h3>Intent <span>written before the original</span></h3></div>
+      <div class="feed" id="feed"></div>
+      <div class="card" style="border-top:1px solid var(--line);border-bottom:0">
+        <h3>Session key <span>scoped</span></h3>
+        <div class="key"><span>programs</span><span>swap · pump</span><span>cap / trade</span><span>2 SOL</span><span>cap / day</span><span>10 SOL</span><span>expires</span><span>7 days</span></div>
+        <button class="revoke" type="button" id="revoke">Revoke</button>
+      </div>
+    </aside>
+
+    <div class="cmd"><span class="gt">›</span><span class="in" id="cmd"></span><span class="cur"></span><span class="sp"></span><span class="k"><b>⌘K</b>ask your double</span></div>
+  </div>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const FULL = q.has('full');
+if (!FULL) document.documentElement.classList.add('stub');
+for (const b of document.querySelectorAll('.full')) if (!FULL) b.hidden = true;
+
+// seeded noise: the same tape every time
+let seed = 11;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+
+const N = 220;
+const price = [];
+let p = 1;
+for (let i = 0; i < N; i++) {
+  const wave = i > 88 && i < 116 ? 0.03 : i > 146 && i < 160 ? -0.032 : i > 176 && i < 198 ? 0.022 : 0;
+  p *= 1 + (rnd() - 0.49) * 0.03 + wave;
+  price.push(p);
+}
+// the original's trades; the double lands on most of them a few slots earlier
+const trades = [
+  [16, 'buy', 1.2, 2], [33, 'sell', 0.8, 1], [55, 'buy', 2.4, 3], [72, 'sell', 2.1, 0], [90, 'buy', 3.6, 2],
+  [116, 'sell', 2.9, 4], [132, 'buy', 1.1, -1], [148, 'sell', 1.4, 2], [166, 'buy', 2.2, 0], [196, 'sell', 2.6, 3], [210, 'buy', 0.9, 2],
+].map(([i, side, sol, lead]) => ({ i, side, sol, lead, miss: lead < 0 }));
+
+const svg = document.getElementById('svg');
+const chart = document.getElementById('chart');
+const tip = document.getElementById('tip');
+const NS = 'http://www.w3.org/2000/svg';
+const MONO = 'Martian Mono, monospace';
+const el = (n, a, par = svg) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); par.appendChild(e); return e; };
+const txt = (s, a) => { const t = el('text', { 'font-family': MONO, 'font-size': 10, fill: '#555', ...a }); t.textContent = s; return t; };
+let geo = null, hair = null;
+
+function draw() {
+  const W = chart.clientWidth, H = chart.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.textContent = '';
+  const L = 22, R = 66, top = 92, mid = Math.round(H * 0.56), bot = H - 34, gap = 26;
+  const hi = Math.max(...price), lo = Math.min(...price);
+  const x = (i) => L + (i / (N - 1)) * (W - L - R);
+  const yU = (v) => mid - gap - ((v - lo) / (hi - lo)) * (mid - gap - top);
+  const yD = (v) => mid + gap + ((v - lo) / (hi - lo)) * (bot - mid - gap - 24);
+  geo = { W, H, L, R, x, yU, yD, mid };
+
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + ((hi - lo) * k) / 4, y = yU(v);
+    el('line', { x1: L, x2: W - R, y1: y, y2: y, stroke: '#121212' });
+    if (FULL) txt(v.toFixed(3), { x: W - R + 12, y: y + 4 });
+  }
+  // the seam
+  el('line', { x1: 0, x2: W, y1: mid, y2: mid, stroke: '#ff2d87', 'stroke-width': 1.5 });
+  txt('seam', { x: W - R + 12, y: mid + 4, fill: '#ff2d87' });
+  ['09:00', '10:00', '11:00', '12:00', '13:00'].forEach((s, k) => txt(s, { x: x((k * (N - 1)) / 4), y: H - 12, 'text-anchor': k === 0 ? 'start' : k === 4 ? 'end' : 'middle' }));
+  if (!FULL) return;
+
+  // activity under the original, faint
+  for (let i = 1; i < N; i++) {
+    const h = Math.min(70, (Math.abs(price[i] - price[i - 1]) / price[i]) * 2600);
+    el('rect', { x: x(i) - 1.3, y: mid - gap - h, width: 2.6, height: h, fill: '#151515' });
+  }
+  const path = (y) => price.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  el('path', { d: path(yU), fill: 'none', stroke: '#f3f3f3', 'stroke-width': 1.7, 'stroke-linejoin': 'round' });
+  el('path', { d: path(yD), fill: 'none', stroke: '#ff2d87', 'stroke-width': 1.4, 'stroke-linejoin': 'round' });
+
+  for (const t of trades) {
+    const X = x(t.i), Y = yU(price[t.i]), r = 4 + t.sol * 2.2, buy = t.side === 'buy';
+    el('line', { x1: X, x2: X, y1: Y + r, y2: mid, stroke: '#262626', 'stroke-dasharray': '2 3' });
+    el('circle', { cx: X, cy: Y, r, fill: buy ? '#f3f3f3' : '#000', stroke: '#f3f3f3', 'stroke-width': 1.5 });
+    txt((buy ? '+' : '−') + t.sol.toFixed(1), { x: X, y: Y - r - 8, fill: '#f3f3f3', 'text-anchor': 'middle', 'font-size': 10.5 });
+    if (t.miss) { txt('stayed out', { x: X, y: mid + gap + 14, fill: '#555', 'text-anchor': 'middle' }); continue; }
+    const Xd = x(t.i - t.lead * 0.7), Yd = yD(price[t.i]);
+    el('line', { x1: Xd, x2: Xd, y1: mid, y2: Yd - r, stroke: '#3d0f23', 'stroke-dasharray': '2 3' });
+    el('circle', { cx: Xd, cy: Yd, r, fill: buy ? '#ff2d87' : '#000', stroke: '#ff2d87', 'stroke-width': 1.5 });
+    if (t.lead > 1) txt(`−${t.lead} slot${t.lead > 1 ? 's' : ''}`, { x: Xd, y: Yd + r + 15, fill: '#ff2d87', 'text-anchor': 'middle' });
+  }
+  hair = el('line', { x1: -9, x2: -9, y1: 0, y2: H, stroke: '#f3f3f3', 'stroke-dasharray': '3 4', opacity: 0.45 });
+}
+
+function showTip(px) {
+  if (!FULL || !geo) return;
+  const { x, L, W, R } = geo;
+  const i = ((px - L) / (W - L - R)) * (N - 1);
+  let t = null;
+  for (const c of trades) if (!t || Math.abs(c.i - i) < Math.abs(t.i - i)) t = c;
+  const X = Math.abs(t.i - i) < 9 ? x(t.i) : px;
+  hair.setAttribute('x1', X); hair.setAttribute('x2', X);
+  if (Math.abs(t.i - i) >= 9) { tip.classList.remove('on'); return; }
+  const slot = (312019000 + t.i * 37).toLocaleString('en').replace(/,/g, ' ');
+  tip.innerHTML = `<div class="t">${t.side} · ${t.sol.toFixed(1)} SOL</div>
+    <div class="r"><span>original</span><span>slot ${slot}</span></div>
+    <div class="r d"><span>double</span><span>${t.miss ? 'stayed out' : t.lead ? `${t.lead} slot${t.lead > 1 ? 's' : ''} earlier` : 'same slot'}</span></div>
+    <hr><div class="r"><span>reason</span><span>${t.miss ? 'bundle on curve' : t.side === 'buy' ? 'early curve, dev quiet' : 'momentum fading'}</span></div>`;
+  tip.classList.add('on');
+  tip.style.left = Math.min(geo.W - 256, X + 16) + 'px';
+  tip.style.top = Math.max(70, Math.min(geo.H - 160, geo.yU(price[t.i]) + 14)) + 'px';
+}
+chart.addEventListener('pointermove', (e) => showTip(e.clientX - chart.getBoundingClientRect().left));
+chart.addEventListener('pointerleave', () => { tip.classList.remove('on'); hair && hair.setAttribute('x1', -9) && hair.setAttribute('x2', -9); });
+document.getElementById('seg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  for (const o of b.parentNode.children) o.classList.toggle('on', o === b);
+});
+const flip = document.getElementById('flip');
+flip.addEventListener('click', () => { const on = flip.classList.toggle('on'); svg.style.transform = on ? 'scaleY(-1)' : ''; });
+const revoke = document.getElementById('revoke');
+revoke.addEventListener('click', () => { revoke.textContent = FULL ? 'Revoked' : 'Soon'; setTimeout(() => { revoke.textContent = 'Revoke'; }, 1400); });
+
+// tape: the doubles you run
+const tape = document.getElementById('tape');
+[['7xKp…f3Qa', 'shadowing', 1], ['Gm4r…9bZe', 'awake', 1], ['A1vT…kq7P', 'training', 0], ['Hn2x…Lr0s', 'paused', 0], ['9fQe…Uw3c', 'awake', 1]].forEach(([w, s, on]) => {
+  let d = 'M0,7', v = 7;
+  for (let k = 1; k <= 18; k++) { v = Math.max(1, Math.min(13, v + (rnd() - 0.5) * 6)); d += ` L${k * 3},${v.toFixed(1)}`; }
+  tape.insertAdjacentHTML('beforeend', `<span class="w"><i class="${on ? '' : 'off'}"></i><em>${w}</em>${s}<svg viewBox="0 0 54 14"><path d="${d}" fill="none" stroke="${on ? '#ff2d87' : '#555'}" stroke-width="1.2"/></svg></span>`);
+});
+
+// fingerprint: original left, double right, mirrored on one axis
+const fp = document.getElementById('fp');
+[['hold time', 0.62, 0.6], ['entry size', 0.48, 0.45], ['drawdown', 0.71, 0.66], ['exit speed', 0.55, 0.58], ['dev exit', 0.9, 0.88], ['re-entry', 0.33, 0.29]].forEach(([n, a, b]) => {
+  fp.insertAdjacentHTML('beforeend', `<span class="l"><i style="width:${a * 100}%"></i></span><em>${n}</em><span class="r"><i style="width:${b * 100}%"></i></span>`);
+});
+
+// intent: what the double writes down before the original moves
+const feed = document.getElementById('feed');
+[
+  ['13:02', 'would <b>buy</b> 0.9 · early curve', 'f', 'first'],
+  ['12:41', 'would <b>sell</b> 2.6 · fade', 'm', 'matched'],
+  ['12:17', 'would <b>buy</b> 2.2 · dev quiet', 'm', 'matched'],
+  ['11:58', '<b>stay out</b> · bundle on curve', '', 'skipped'],
+  ['11:33', 'would <b>sell</b> 1.4 · dev sold', 'f', 'first'],
+  ['11:06', 'would <b>sell</b> 2.9 · target', 'm', 'matched'],
+  ['10:44', 'would <b>buy</b> 3.6 · volume wave', 'f', 'first'],
+  ['10:21', 'would <b>sell</b> 2.1 · stall', 'm', 'matched'],
+  ['09:52', 'would <b>buy</b> 2.4 · new mint', 'm', 'matched'],
+].forEach(([t, s, c, l]) => feed.insertAdjacentHTML('beforeend', `<div class="ev"><time>${t}</time><span>${s}</span><span class="s ${c}">${l}</span></div>`));
+
+// the prompt types the MCP line
+const cmd = document.getElementById('cmd');
+const line = FULL ? 'spawn the double of 7xKp…f3Qa' : 'spawn the double of <wallet>   soon';
+if (q.has('still')) cmd.textContent = line;
+else { let k = 0; const tick = () => { cmd.textContent = line.slice(0, ++k); if (k < line.length) setTimeout(tick, 40 + rnd() * 60); }; setTimeout(tick, 500); }
+
+draw();
+addEventListener('resize', draw);
+document.fonts.ready.then(() => {
+  draw();
+  if (q.has('hover')) showTip(+q.get('hover') * chart.clientWidth);
+  window.__ready = true;
+});
+</script>
+</body>
+</html>
