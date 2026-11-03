@@ -750,6 +750,7 @@ btn.addEventListener('click', connect);
 async function reveal(addr) {
   const my = ++seq;
   addrO.textContent = short(addr);
+  for (const a of document.querySelectorAll('a.open')) a.href = 'app/?w=' + encodeURIComponent(addr);
   addrT.textContent = '';
   setPhase('scan');
   typeTwin(offByOne(short(addr)), my); // its copy of your wallet, one character wrong

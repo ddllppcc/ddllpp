@@ -124,8 +124,18 @@
   /* the site's stub: the frame is real, the double is not awake yet */
   .soon { position: absolute; inset: 0; display: none; place-items: center; z-index: 4; pointer-events: none; }
   .soon p { margin: 0; padding: 14px 20px 16px; background: var(--pink); color: #000; font: 900 30px/1 var(--disp); font-stretch: 62%; text-transform: uppercase; letter-spacing: .01em; text-align: center; }
-  html.stub .soon { display: grid; }
-  html.stub .legend, html.stub .feed, html.stub .tape .w, html.stub .fp, html.stub .key, html.stub .tip, html.stub .pair, html.stub .chip { visibility: hidden; }
+  html.stub .soon.on { display: grid; }
+  #q { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none; color: var(--tx); font: inherit; caret-color: var(--pink); }
+  #q::placeholder { color: var(--tx3); }
+  html.stub .cmd .cur, html.stub .cmd .sp { display: none; }
+  .tape .w { cursor: pointer; }
+  .tape .w:hover em { color: var(--pink); }
+  .tape .hint { color: var(--tx3); }
+  .ev a { color: var(--tx); }
+  .ev a:hover { color: var(--pink); }
+  .empty { padding: 14px 16px; font: 400 11px/1.6 var(--mono); color: var(--tx3); }
+  .toast { position: fixed; left: 50%; bottom: 9vh; z-index: 9; transform: translate(-50%, 10px); padding: 11px 16px; border-radius: 10px; background: var(--pink); color: #000; font: 600 12px/1 var(--mono); opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
   @keyframes blink { 50% { opacity: 0; } }
   @media (max-width: 900px) {
@@ -178,7 +188,7 @@
           <div class="p">double &nbsp;&nbsp;&nbsp;<b>yours</b> &nbsp;· mirrored below, moves first</div>
         </div>
         <div class="tip" id="tip"></div>
-        <div class="soon"><p>Your double<br>wakes at release.</p></div>
+        <div class="soon" id="soon"><p>Your double<br>wakes at release.</p></div>
       </div>
     </section>
 
@@ -338,7 +348,7 @@ const feed = document.getElementById('feed');
 // the prompt types the MCP line
 const cmd = document.getElementById('cmd');
 const line = FULL ? 'spawn the double of 7xKp…f3Qa' : 'spawn the double of <wallet>   soon';
-if (q.has('still')) cmd.textContent = line;
+if (!FULL) {} else if (q.has('still')) cmd.textContent = line;
 else { let k = 0; const tick = () => { cmd.textContent = line.slice(0, ++k); if (k < line.length) setTimeout(tick, 40 + rnd() * 60); }; setTimeout(tick, 500); }
 
 draw();
@@ -349,5 +359,7 @@ document.fonts.ready.then(() => {
   window.__ready = true;
 });
 </script>
+<div class="toast" id="toast"></div>
+<script src="live.js"></script>
 </body>
 </html>
