@@ -103,6 +103,8 @@
     letter-spacing: -.005em;
   }
   .line span, .msg span { display: block; width: fit-content; white-space: nowrap; }
+  html.one .line, html.one .msg { white-space: nowrap; }
+  html.one .line span, html.one .msg span { display: inline; }
   .line { transition: opacity 180ms var(--out), transform 220ms var(--out), visibility 0s; }
   .msg { visibility: hidden; opacity: 0; transform: translateY(8px); transition: opacity 240ms var(--out), transform 260ms var(--out), visibility 0s 260ms; }
 
@@ -658,13 +660,17 @@ function fit() {
   else restWs = ws;
   ws = Math.max(typing() ? 24 : 40, ws);
   root.style.setProperty('--ws', ws.toFixed(1) + 'px');
-  if (innerWidth <= 640) { root.style.removeProperty('--ls'); root.style.removeProperty('--bear'); }
+  if (innerWidth <= 640) { root.style.removeProperty('--ls'); root.style.removeProperty('--bear'); root.classList.remove('one'); }
   else if (!typing()) { // the line runs exactly as wide as the word above it
-    root.style.setProperty('--ls', '100px');
-    const lw = $('.line span', orig).getBoundingClientRect().width;
     const bear = ws * 0.04; // the letters sit inside their box; line up with the ink
     root.style.setProperty('--bear', bear.toFixed(1) + 'px');
-    root.style.setProperty('--ls', (100 * (Math.max(ro.width, rt.width) * ws / 100 - bear * 2) / Math.max(1, lw)).toFixed(1) + 'px');
+    const w = Math.max(ro.width, rt.width) * ws / 100 - bear * 2;
+    const size = (el) => (100 * w) / Math.max(1, el.getBoundingClientRect().width);
+    root.style.setProperty('--ls', '100px');
+    root.classList.add('one'); // one line when it stays readable, two when it would get too small
+    let ls = size($('.line', orig));
+    if (ls < 20) { root.classList.remove('one'); ls = size($('.line span', orig)); }
+    root.style.setProperty('--ls', ls.toFixed(1) + 'px');
   }
 }
 fit();
