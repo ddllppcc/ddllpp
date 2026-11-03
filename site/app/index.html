@@ -29,7 +29,7 @@
   a { color: inherit; text-decoration: none; }
 
   /* the window floats on the brand stripes, like a screenshot on a desk */
-  .desk { position: fixed; inset: 0; background: var(--pink) url(stripes.jpg) center / cover; }
+  .desk { position: fixed; inset: 0; background: var(--pink) url(stripes.svg) center / cover; }
   .win {
     position: absolute; inset: 5.5vh 4.5vw; display: grid; grid-template-columns: 216px minmax(0, 1fr) 340px; grid-template-rows: 44px minmax(0, 1fr) 46px;
     background: var(--bg); border-radius: 18px; overflow: hidden;
@@ -324,15 +324,15 @@ const fp = document.getElementById('fp');
 // intent: what the double writes down before the original moves
 const feed = document.getElementById('feed');
 [
-  ['13:02', 'would <b>buy</b> 0.9 · early curve', 'f', 'first'],
-  ['12:41', 'would <b>sell</b> 2.6 · fade', 'm', 'matched'],
-  ['12:17', 'would <b>buy</b> 2.2 · dev quiet', 'm', 'matched'],
+  ['13:02', '<b>buy</b> 0.9 · early curve', 'f', 'first'],
+  ['12:41', '<b>sell</b> 2.6 · fade', 'm', 'matched'],
+  ['12:17', '<b>buy</b> 2.2 · dev quiet', 'm', 'matched'],
   ['11:58', '<b>stay out</b> · bundle on curve', '', 'skipped'],
-  ['11:33', 'would <b>sell</b> 1.4 · dev sold', 'f', 'first'],
-  ['11:06', 'would <b>sell</b> 2.9 · target', 'm', 'matched'],
-  ['10:44', 'would <b>buy</b> 3.6 · volume wave', 'f', 'first'],
-  ['10:21', 'would <b>sell</b> 2.1 · stall', 'm', 'matched'],
-  ['09:52', 'would <b>buy</b> 2.4 · new mint', 'm', 'matched'],
+  ['11:33', '<b>sell</b> 1.4 · dev sold', 'f', 'first'],
+  ['11:06', '<b>sell</b> 2.9 · target', 'm', 'matched'],
+  ['10:44', '<b>buy</b> 3.6 · volume wave', 'f', 'first'],
+  ['10:21', '<b>sell</b> 2.1 · stall', 'm', 'matched'],
+  ['09:52', '<b>buy</b> 2.4 · new mint', 'm', 'matched'],
 ].forEach(([t, s, c, l]) => feed.insertAdjacentHTML('beforeend', `<div class="ev"><time>${t}</time><span>${s}</span><span class="s ${c}">${l}</span></div>`));
 
 // the prompt types the MCP line
