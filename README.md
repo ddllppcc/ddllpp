@@ -2,8 +2,6 @@
   <img src=".github/assets/banner.jpg" alt="AI agent that clones any Solana wallet's trading style." width="100%">
 </p>
 
-<h1 align="center">ddllpp</h1>
-
 <p align="center">
   <a href="https://ddllpp.cc">ddllpp.cc</a> &nbsp;·&nbsp;
   <a href="https://x.com/ddllppcc">x.com/ddllppcc</a> &nbsp;·&nbsp;
