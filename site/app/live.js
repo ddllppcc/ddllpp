@@ -40,8 +40,10 @@
     if (e.key !== 'Enter') return;
     const v = input.value.trim().replace(/^spawn( the double of)?\s+/i, '');
     if (!v) return;
-    if (!ADDR.test(v)) { toast('not a Solana address'); return; }
-    load(v);
+    if (ADDR.test(v)) { load(v); return; }
+    if (!wallet) { toast('not a Solana address'); return; }
+    input.value = '';
+    askDouble(v);
   });
   addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); input.select(); }
@@ -86,6 +88,9 @@
       span = 'All';
       segSync();
       setHead('asleep');
+      if (typeof show === 'function') { current = 'Mirror'; for (const a of document.querySelectorAll('.side .nav')) a.classList.toggle('on', a.dataset.v === 'Mirror'); view.classList.remove('on'); $('.legend').style.visibility = ''; }
+      log && log('opened ' + short(w));
+      input.placeholder = 'ask your double anything';
       draw();
       fingerprint();
       list();
@@ -242,24 +247,235 @@
 
   // ------------------------------------------------------------- controls
   function segSync() { for (const b of document.querySelectorAll('#seg button')) b.classList.toggle('on', b.textContent === span); }
-  $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; span = b.textContent; segSync(); draw(); });
+  $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; span = b.textContent; segSync(); if (current !== 'Mirror') show('Mirror'); else draw(); });
 
-  $('.key').innerHTML = '<span>programs</span><span>—</span><span>cap / trade</span><span>—</span><span>cap / day</span><span>—</span><span>status</span><span>not granted</span>';
-  const revoke = $('#revoke');
-  revoke.replaceWith(revoke.cloneNode(true));
-  $('#revoke').textContent = 'Grant · soon';
-  $('#revoke').addEventListener('click', () => toast('session keys open at release'));
+  // ------------------------------------------------------------- views
+  // every nav item opens a working view over the chart; Mirror is the chart itself
+  const view = document.createElement('div');
+  view.className = 'view';
+  chart.appendChild(view);
+  let current = 'Mirror', alertT = 0, alertOn = false, logs = [], policy = null;
+  const log = (s) => { logs.unshift([new Date().toLocaleTimeString('en-GB'), s]); if (current === 'Logs') views.Logs(); };
+  const need = () => (wallet ? '' : '<p class="vh">open a wallet first: paste it below and press enter.</p>');
+  const head = (t, sub) => `<div class="vt"><h2>${t}</h2><span>${sub}</span></div>`;
 
-  const SOON = { 'My doubles': 'no doubles yet. they wake at release', Shadow: 'shadow mode opens at release', Cluster: 'wallet clusters open at release', Policy: 'policy view opens at release', 'Session key': 'session keys open at release', Logs: 'logs open at release', Alerts: 'no alerts yet' };
-  for (const a of document.querySelectorAll('.side .nav')) {
-    const name = a.textContent.trim();
-    if (name === 'Spawn') a.addEventListener('click', (e) => { e.preventDefault(); input.focus(); input.select(); toast('paste a wallet, press enter'); });
-    else if (name === 'Mirror') a.addEventListener('click', (e) => e.preventDefault());
-    else if (name === 'MCP') { a.href = 'https://github.com/ddllppcc/ddllpp'; a.target = '_blank'; a.rel = 'noopener'; }
-    else if (SOON[name]) a.addEventListener('click', (e) => { e.preventDefault(); toast(SOON[name]); });
+  function show(name) {
+    current = name;
+    for (const a of document.querySelectorAll('.side .nav')) a.classList.toggle('on', a.dataset.v === name);
+    const mirror = name === 'Mirror' || name === 'Shadow';
+    view.classList.toggle('on', !mirror);
+    $('.legend').style.visibility = mirror ? '' : 'hidden';
+    if (mirror) { (name === 'Shadow' ? drawShadow : draw)(); return; }
+    views[name]();
+    log('opened ' + name.toLowerCase());
   }
+
+  const views = {
+    'My doubles'() {
+      const list = recent();
+      view.innerHTML = head('My doubles', 'wallets you opened on this device') + (list.length
+        ? '<div class="grid">' + list.map((w) => `<button class="tile" data-open="${w}"><b>${short(w)}</b><span>${w === wallet ? 'open now · asleep' : 'asleep'}</span><i>open</i></button>`).join('') + '</div>'
+        : '<p class="vh">no doubles yet. spawn one: paste a wallet below.</p>');
+    },
+    Cluster() {
+      view.innerHTML = head('Cluster', 'wallets that touch this one, from its latest transactions') + (need() || '<svg class="graph" id="graph"></svg><p class="vh" id="gst">reading the last 25 transactions…</p>');
+      if (wallet) cluster();
+    },
+    Policy() {
+      view.innerHTML = head('Policy', 'what the double would keep from this wallet') + (need() || `<div class="rules">${rules().map(([k, v, on], i) => `<label class="rule"><input type="checkbox" ${on ? 'checked' : ''} data-r="${i}"><span><b>${k}</b>${v}</span></label>`).join('')}</div><button class="btn" id="pexp">Copy policy</button>`);
+      const b = $('#pexp');
+      if (b) b.onclick = () => { const kept = [...view.querySelectorAll('[data-r]')].filter((c) => c.checked).map((c) => rules()[+c.dataset.r][0]); copy(JSON.stringify({ wallet, keep: kept }, null, 2)); toast('policy copied'); log('copied policy'); };
+    },
+    MCP() {
+      const c = 'claude mcp add ddllpp -- npx -y github:ddllppcc/ddllpp';
+      view.innerHTML = head('MCP', 'run your double inside your own AI tools') + `<pre class="snip">${c}</pre><div class="row"><button class="btn" id="mcpc">Copy</button><a class="btn ghost" href="https://github.com/ddllppcc/ddllpp" target="_blank" rel="noopener">GitHub</a></div><p class="vh">then ask your agent: spawn the double of ${wallet ? short(wallet) : '&lt;wallet&gt;'}</p>`;
+      $('#mcpc').onclick = () => { copy(c); toast('copied'); log('copied mcp command'); };
+    },
+    'Session key'() {
+      view.innerHTML = head('Session key', 'what the double may do from your wallet') + `<div class="form">
+        <label>programs<span class="chips"><button class="ch on">swap</button><button class="ch on">pump</button><button class="ch">transfer</button></span></label>
+        <label>cap / trade <output id="o1">2 SOL</output><input type="range" min="0.1" max="10" step="0.1" value="2" id="r1"></label>
+        <label>cap / day <output id="o2">10 SOL</output><input type="range" min="1" max="50" step="1" value="10" id="r2"></label>
+        <label>expires <output id="o3">7 days</output><input type="range" min="1" max="30" step="1" value="7" id="r3"></label>
+      </div><div class="row"><button class="btn" id="kd">Copy draft</button><span class="vh" style="margin:0">nothing is signed. the double signs nothing until release.</span></div>`;
+      const sync = () => { $('#o1').textContent = $('#r1').value + ' SOL'; $('#o2').textContent = $('#r2').value + ' SOL'; $('#o3').textContent = $('#r3').value + ' days'; keyCard(); };
+      view.querySelectorAll('input[type=range]').forEach((r) => (r.oninput = sync));
+      view.querySelectorAll('.ch').forEach((c) => (c.onclick = () => { c.classList.toggle('on'); keyCard(); }));
+      $('#kd').onclick = () => { copy(JSON.stringify(draftKey(), null, 2)); toast('draft copied'); log('copied session key draft'); };
+      keyCard();
+    },
+    Logs() {
+      view.innerHTML = head('Logs', 'this session') + (logs.length ? '<div class="logs">' + logs.map(([t, s]) => `<div><time>${t}</time>${s}</div>`).join('') + '</div>' : '<p class="vh">nothing yet.</p>');
+    },
+    Alerts() {
+      view.innerHTML = head('Alerts', 'ping when the original moves, while this tab is open') + (need() || `<div class="row"><button class="btn ${alertOn ? 'ghost' : ''}" id="al">${alertOn ? 'Stop watching' : 'Watch ' + short(wallet)}</button><span class="vh" style="margin:0">${alertOn ? 'watching. checks every 20 s.' : 'off'}</span></div>`);
+      const b = $('#al');
+      if (b) b.onclick = () => { alertOn ? stopAlerts() : startAlerts(); views.Alerts(); };
+    },
+  };
+
+  function draftKey() {
+    const r = (id) => +($('#' + id)?.value || 0);
+    return { wallet: wallet || null, programs: [...view.querySelectorAll('.ch.on')].map((c) => c.textContent), capPerTradeSol: r('r1') || 2, capPerDaySol: r('r2') || 10, expiresDays: r('r3') || 7, status: 'draft' };
+  }
+  function keyCard() {
+    const d = view.querySelector('#r1') ? draftKey() : { programs: [], capPerTradeSol: '—', capPerDaySol: '—', expiresDays: '—' };
+    $('.key').innerHTML = `<span>programs</span><span>${d.programs.join(' · ') || '—'}</span><span>cap / trade</span><span>${d.capPerTradeSol}${d.programs.length ? ' SOL' : ''}</span><span>cap / day</span><span>${d.capPerDaySol}${d.programs.length ? ' SOL' : ''}</span><span>status</span><span>${d.programs.length ? 'draft' : 'not granted'}</span>`;
+  }
+  function copy(t) { navigator.clipboard?.writeText(t).catch(() => {}); }
+
+  // rules the double reads from real stats
+  function stats() {
+    if (!sigs.length) return null;
+    const first = sigs[0].blockTime, last = sigs[sigs.length - 1].blockTime;
+    let burst = 0;
+    for (let i = 1; i < sigs.length; i++) if (sigs[i].blockTime - sigs[i - 1].blockTime <= 10) burst++;
+    const hours = new Array(24).fill(0);
+    for (const x of sigs) hours[new Date(x.blockTime * 1000).getUTCHours()]++;
+    return { n: sigs.length, hours, span: last - first, failed: sigs.filter((x) => x.err).length / sigs.length, burst: burst / Math.max(1, sigs.length - 1), peak: hours.indexOf(Math.max(...hours)) };
+  }
+  function rules() {
+    const s = stats();
+    if (!s) return [];
+    const perH = s.n / Math.max(1, s.span / 3600);
+    return [
+      ['pace', perH > 60 ? `machine pace, about ${Math.round(perH)} tx an hour` : perH > 4 ? `active, about ${perH.toFixed(1)} tx an hour` : 'slow and picky', true],
+      ['bursts', s.burst > 0.5 ? 'fires in bursts, many tx inside 10 s' : 'spaces its moves out', s.burst > 0.2],
+      ['retries', s.failed > 0.3 ? `pushes through failures: ${Math.round(s.failed * 100)}% of tx fail` : 'rarely fails, waits for clean fills', s.failed > 0.3],
+      ['clock', `busiest at ${String(s.peak).padStart(2, '0')}:00 utc`, true],
+      ['size', 'entry sizes need the trade decoder', false],
+    ];
+  }
+
+  // shadow: when the original trades, by hour, with the double's mirror below
+  function drawShadow() {
+    draw();
+    const s = stats();
+    if (!geo || !s) return;
+    svg.textContent = '';
+    const { W, H, L, R, mid } = geo, top = 92, bot = H - 34, gap = 22;
+    el('line', { x1: 0, x2: W, y1: mid, y2: mid, stroke: '#ff2d87', 'stroke-width': 1.5 });
+    const max = Math.max(...s.hours), bw = (W - L - R) / 24;
+    s.hours.forEach((v, h) => {
+      const hu = ((mid - gap - top) * v) / max, hd = ((bot - mid - gap - 20) * v) / max;
+      el('rect', { x: L + h * bw + 3, y: mid - gap - hu, width: bw - 6, height: hu, fill: h === s.peak ? '#f3f3f3' : '#3a3a3a' });
+      el('rect', { x: L + h * bw + 3.5, y: mid + gap, width: bw - 7, height: hd, fill: 'none', stroke: '#ff2d87', 'stroke-dasharray': '2 2' });
+      if (h % 3 === 0) txt(String(h).padStart(2, '0') + ':00', { x: L + h * bw + bw / 2, y: H - 12, 'text-anchor': 'middle' });
+    });
+    txt('tx by hour, utc', { x: L, y: top - 14, fill: '#8b8b8b' });
+    txt('the double keeps the same clock', { x: L, y: bot - 2, fill: '#ff2d87' });
+    buckets = [];
+  }
+
+  // cluster: real counterparties from the latest transactions
+  async function cluster() {
+    const st = () => $('#gst');
+    try {
+      const last = sigs.slice(-25).reverse();
+      const counts = new Map();
+      const txs = await Promise.all(last.map((x) => rpc('getTransaction', [x.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).catch(() => null)));
+      for (const t of txs) {
+        if (!t) continue;
+        for (const k of t.transaction.message.accountKeys) {
+          const a = k.pubkey || k;
+          if (a === wallet || !k.writable) continue;
+          counts.set(a, (counts.get(a) || 0) + 1);
+        }
+      }
+      const top = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 14);
+      if (current !== 'Cluster') return;
+      if (!top.length) { st().textContent = 'no counterparties in the latest transactions.'; return; }
+      const g = $('#graph'), W = g.clientWidth, H = g.clientHeight, cx = W / 2, cy = H / 2, R0 = Math.min(W, H) / 2 - 44;
+      g.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const max = top[0][1];
+      top.forEach(([a, n], i) => {
+        const ang = (i / top.length) * Math.PI * 2 - Math.PI / 2, x = cx + Math.cos(ang) * R0, y = cy + Math.sin(ang) * R0;
+        el('line', { x1: cx, y1: cy, x2: x, y2: y, stroke: '#ff2d87', 'stroke-width': 0.6 + (2.4 * n) / max, opacity: 0.7 }, g);
+        const c = el('circle', { cx: x, cy: y, r: 4 + (8 * n) / max, fill: '#000', stroke: '#f3f3f3', 'stroke-width': 1.5, style: 'cursor:pointer' }, g);
+        c.addEventListener('click', () => open('https://solscan.io/account/' + a, '_blank', 'noopener'));
+        const t = el('text', { x, y: y + (y > cy ? 24 : -16), fill: '#8b8b8b', 'font-family': MONO, 'font-size': 10, 'text-anchor': 'middle' }, g);
+        t.textContent = `${short(a)} ×${n}`;
+      });
+      el('circle', { cx, cy, r: 14, fill: '#ff2d87' }, g);
+      const t = el('text', { x: cx, y: cy + 34, fill: '#f3f3f3', 'font-family': MONO, 'font-size': 11, 'text-anchor': 'middle' }, g);
+      t.textContent = short(wallet);
+      st().textContent = 'writable accounts shared with the latest 25 tx. click a node to open it.';
+      log('read cluster of ' + short(wallet));
+    } catch { if (st()) st().textContent = 'public RPC is busy. open Cluster again.'; }
+  }
+
+  // alerts: poll for new signatures while the tab is open
+  function startAlerts() {
+    alertOn = true;
+    let seen = sigs.length ? sigs[sigs.length - 1].signature : '';
+    const tick = async () => {
+      try {
+        const r = await rpc('getSignaturesForAddress', [wallet, { limit: 10 }]);
+        const fresh = seen ? r.slice(0, r.findIndex((x) => x.signature === seen) >>> 0) : [];
+        if (r[0]) seen = r[0].signature;
+        if (fresh.length) { toast(`${short(wallet)} moved: ${fresh.length} new tx`); log(`${short(wallet)}: ${fresh.length} new tx`); }
+      } catch {}
+    };
+    alertT = setInterval(tick, 20000);
+    log('watching ' + short(wallet));
+    toast('watching ' + short(wallet));
+  }
+  function stopAlerts() { alertOn = false; clearInterval(alertT); log('stopped watching'); }
+
+  // ------------------------------------------------------------- ask the double
+  let wired = null;
+  async function askDouble(question) {
+    if (!wallet) { toast('open a wallet first'); return; }
+    say('…', true);
+    log('asked: ' + question);
+    try {
+      if (wired === null) wired = await fetch('/api/health').then((r) => r.json()).then((j) => !!j.key).catch(() => false);
+      if (!wired) return say(localAnswer(question));
+      const r = await fetch('/api/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet, question }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.answer) return say(j.answer);
+      if (r.status === 429) return say(j.error);
+    } catch {}
+    say(localAnswer(question));
+  }
+  function localAnswer(q) {
+    const s = stats();
+    if (!s) return 'i see no history yet. nothing to copy.';
+    if (/\b(buy|sell|ape|send|copy (it|this|that|him|them))\b/i.test(q)) return 'i do not act yet. i wake at release.';
+    const r = rules().filter((x) => x[2]).map((x) => x[1]);
+    return `i read ${s.n} transactions. ${r.slice(0, 3).join('. ')}.`;
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'say';
+  $('.main').appendChild(bubble);
+  function say(t, wait) {
+    bubble.innerHTML = `<b>double</b><p>${t.replace(/</g, '&lt;')}</p>`;
+    bubble.classList.add('on');
+    bubble.classList.toggle('wait', !!wait);
+    if (!wait) log('double: ' + t.slice(0, 80));
+  }
+  bubble.addEventListener('click', () => bubble.classList.remove('on'));
+
+  // ------------------------------------------------------------- wire the buttons
+  for (const a of document.querySelectorAll('.side .nav')) {
+    const name = a.textContent.replace(/\d+$/, '').trim();
+    a.dataset.v = name;
+    if (name === 'ddllpp.cc') continue;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (name === 'Spawn') { show('Mirror'); input.value = ''; input.focus(); toast('paste a wallet, press enter'); return; }
+      show(name);
+    });
+  }
+  view.addEventListener('click', (e) => { const t = e.target.closest('[data-open]'); if (t) { show('Mirror'); load(t.dataset.open); } });
+  const grant = $('#revoke');
+  grant.replaceWith(grant.cloneNode(true));
+  $('#revoke').textContent = 'Set up';
+  $('#revoke').addEventListener('click', () => show('Session key'));
+  keyCard();
   $('.cmd .k').style.cursor = 'pointer';
-  $('.cmd .k').addEventListener('click', () => { input.focus(); input.select(); });
+  $('.cmd .k').addEventListener('click', () => { input.value = ''; input.placeholder = wallet ? 'ask your double anything' : 'paste a Solana wallet and press enter'; input.focus(); });
+  addEventListener('resize', () => { if (current === 'Shadow') requestAnimationFrame(drawShadow); });
 
   // ------------------------------------------------------------- start
   fp.innerHTML = '<em style="grid-column:1/-1;text-align:left">open a wallet to read its style</em>';
@@ -267,7 +483,7 @@
   feed.innerHTML = '<div class="empty">its latest transactions show up here.</div>';
   setHead('idle');
   renderTape();
-  addEventListener('resize', () => requestAnimationFrame(draw));
+  addEventListener('resize', () => { if (current === 'Mirror') requestAnimationFrame(draw); });
   document.fonts.ready.then(draw);
   draw();
   const w0 = new URLSearchParams(location.search).get('w');

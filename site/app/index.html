@@ -137,6 +137,42 @@
   .toast { position: fixed; left: 50%; bottom: 9vh; z-index: 9; transform: translate(-50%, 10px); padding: 11px 16px; border-radius: 10px; background: var(--pink); color: #000; font: 600 12px/1 var(--mono); opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
+  /* live views over the chart */
+  .view { position: absolute; inset: 0; z-index: 5; display: none; flex-direction: column; gap: 18px; padding: 22px 24px; background: var(--bg); overflow: auto; }
+  .view.on { display: flex; }
+  .vt { display: flex; align-items: baseline; gap: 14px; }
+  .vt h2 { margin: 0; font: 900 34px/1 var(--disp); font-stretch: 62%; text-transform: uppercase; }
+  .vt span, .vh { font: 400 11.5px/1.6 var(--mono); color: var(--tx3); }
+  .vh { margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .tile { display: grid; gap: 8px; padding: 16px; text-align: left; border: 1px solid var(--line2); border-radius: 12px; font: 400 11px/1 var(--mono); color: var(--tx3); }
+  .tile b { font: 800 20px/1 var(--disp); font-stretch: 80%; color: var(--tx); }
+  .tile i { font-style: normal; color: var(--pink); }
+  .tile:hover { border-color: var(--pink); }
+  .graph { flex: 1; min-height: 320px; width: 100%; }
+  .rules { display: grid; gap: 10px; max-width: 640px; }
+  .rule { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--line2); border-radius: 12px; cursor: pointer; font: 400 12px/1.5 var(--mono); color: var(--tx2); }
+  .rule b { display: block; margin-bottom: 3px; font: 800 12px/1 var(--disp); letter-spacing: .18em; text-transform: uppercase; color: var(--tx); }
+  .rule input { accent-color: var(--pink); width: 16px; height: 16px; margin: 2px 0 0; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn { display: inline-grid; place-items: center; height: 38px; padding: 0 18px; border-radius: 9px; background: var(--pink); color: #000; font: 800 11px/1 var(--disp); letter-spacing: .2em; text-transform: uppercase; align-self: flex-start; }
+  .btn.ghost { background: none; color: var(--tx); box-shadow: inset 0 0 0 1px var(--line2); }
+  .btn:hover { filter: brightness(1.08); }
+  .snip { margin: 0; padding: 16px 18px; border: 1px solid var(--line2); border-radius: 12px; font: 400 13px/1.5 var(--mono); color: var(--tx); white-space: pre-wrap; word-break: break-all; }
+  .form { display: grid; gap: 18px; max-width: 520px; }
+  .form label { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 8px 14px; font: 400 11.5px/1 var(--mono); color: var(--tx2); }
+  .form output { justify-self: end; color: var(--tx); }
+  .form input[type=range] { grid-column: 1 / -1; accent-color: var(--pink); width: 100%; }
+  .chips { display: flex; gap: 6px; justify-content: flex-end; }
+  .ch { height: 26px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line2); font: 500 11px/1 var(--mono); color: var(--tx2); }
+  .ch.on { background: var(--pink); border-color: var(--pink); color: #000; }
+  .logs { display: grid; gap: 2px; font: 400 11.5px/1.7 var(--mono); color: var(--tx2); }
+  .logs time { color: var(--tx3); margin-right: 14px; }
+  .say { position: absolute; left: 18px; right: 18px; bottom: 14px; z-index: 6; display: none; gap: 6px; padding: 14px 16px; border-radius: 12px; background: #0b0b0b; border: 1px solid var(--pink); cursor: pointer; }
+  .say.on { display: grid; }
+  .say b { font: 800 11px/1 var(--disp); letter-spacing: .2em; text-transform: uppercase; color: var(--pink); }
+  .say p { margin: 0; font: 400 13px/1.6 var(--mono); color: var(--tx); }
+  .say.wait p { animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
   @media (max-width: 900px) {
     .win { grid-template-columns: minmax(0, 1fr); inset: 12px; border-radius: 14px; }
