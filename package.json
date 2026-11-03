@@ -1,0 +1,9 @@
+{
+  "name": "ddllpp",
+  "version": "0.1.0",
+  "description": "AI agent that clones any Solana wallet's trading style. MCP server.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "ddllpp": "bin/mcp.mjs" },
+  "files": ["bin"]
+}

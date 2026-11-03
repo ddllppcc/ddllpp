@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>doppel | $DDLLPP</title>
+<meta name="description" content="AI agent that clones any Solana wallet's trading style.">
+<meta name="theme-color" content="#ff2d87">
+<meta name="color-scheme" content="light">
+<link rel="canonical" href="https://ddllpp.cc/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23ff2d87'/%3E%3Cg%20transform='translate(-2.944%20-2.432)%20scale(1.16)'%3E%3Cpath%20d='M2.88%2025.5V6.5H9.12Q11.44%206.5%2012.71%207.51Q13.98%208.52%2014.49%2010.59Q15%2012.66%2015%2015.92Q15%2019.15%2014.46%2021.27Q13.92%2023.4%2012.62%2024.45Q11.33%2025.5%209.01%2025.5ZM7.93%2021.14H8.7Q9.12%2021.14%209.37%2020.96Q9.61%2020.78%209.71%2020.38Q9.81%2019.98%209.84%2019.36Q9.86%2018.73%209.86%2017.88V14.54Q9.86%2013.65%209.84%2012.98Q9.81%2012.3%209.71%2011.83Q9.61%2011.36%209.37%2011.11Q9.12%2010.86%208.7%2010.86H7.93Z'/%3E%3Cpath%20d='M15.74%2024.56%2018.38%205.75%2024.56%206.62Q26.86%206.94%2027.98%208.12Q29.09%209.29%2029.31%2011.41Q29.53%2013.53%2029.08%2016.76Q28.63%2019.96%2027.8%2021.99Q26.97%2024.02%2025.54%2024.88Q24.11%2025.74%2021.81%2025.42ZM21.35%2020.95%2022.11%2021.05Q22.52%2021.11%2022.8%2020.97Q23.07%2020.83%2023.22%2020.44Q23.37%2020.06%2023.48%2019.45Q23.6%2018.84%2023.72%2017.99L24.18%2014.68Q24.3%2013.8%2024.37%2013.13Q24.44%2012.46%2024.41%2011.98Q24.38%2011.5%2024.17%2011.22Q23.95%2010.94%2023.54%2010.88L22.78%2010.77Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="alternate icon" href="favicon.ico">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="doppel">
+<meta property="og:url" content="https://ddllpp.cc/">
+<meta property="og:title" content="doppel | $DDLLPP">
+<meta property="og:description" content="AI agent that clones any Solana wallet's trading style.">
+<meta property="og:image" content="https://ddllpp.cc/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ddllppcc">
+<meta name="twitter:image" content="https://ddllpp.cc/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+<style>
+  /* doppel: one seam, everything twice. two colours, nothing else. */
+  :root {
+    --pink: #ff2d87;
+    --ink: #000;
+    --disp: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+    --gap: 28px;   /* from the seam */
+    --edge: 32px;  /* from the screen edge */
+    --ws: 220px;   /* the word, fitted by script */
+    --out: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--pink); color: var(--ink); overflow: hidden; }
+  body {
+    font: 500 14px/1.4 var(--disp);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection { background: var(--ink); color: var(--pink); }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  html.own-cursor, html.own-cursor * { cursor: none !important; }
+
+  /* ------------------------------------------------------------ layers */
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  #seam, #ink { z-index: 0; }
+  #cur { z-index: 40; }
+  .stage {
+    position: fixed; inset: 0; z-index: 1;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    will-change: transform;
+  }
+  .stage.flip { transform: scaleX(-1); }   /* the double has the wheel */
+
+  /* each half hugs the seam; the twin is the same box, flipped */
+  .half {
+    position: absolute; top: 0; bottom: 0; width: 50%;
+    display: grid; grid-template-rows: auto 1fr auto; justify-items: end;
+    text-align: right;
+    padding: max(26px, env(safe-area-inset-top)) var(--gap) max(30px, calc(env(safe-area-inset-bottom) + 18px)) max(var(--edge), env(safe-area-inset-left), env(safe-area-inset-right));
+  }
+  .orig { left: 0; }
+  .twin { left: 50%; transform: scaleX(-1); }
+
+  .top { display: flex; flex-direction: column; align-items: flex-end; gap: clamp(6px, 1.6vh, 18px); }
+  .x { display: inline-grid; place-items: center; width: 42px; height: 42px; }
+  .x svg { width: 18px; height: 18px; display: block; transition: transform 160ms var(--out); }
+  .x.hov svg, .x:focus-visible svg { transform: scale(1.3); }
+  .x:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .links { display: flex; align-items: center; gap: 16px; min-height: 42px; }
+  /* the name sits on the seam: ddl | lpp, the mirror runs between the two l */
+  .mark {
+    margin: 0 calc(.13em - var(--gap)) 0 0;
+    font: 900 clamp(40px, 3.6vw, 64px)/.86 var(--disp); font-stretch: 62%; letter-spacing: .01em;
+  }
+  .mark span { display: inline-block; transform: scaleX(-1); }
+  .hero { align-self: center; display: flex; flex-direction: column; align-items: flex-end; gap: clamp(18px, 3.4vh, 38px); }
+  .word {
+    margin: 0; display: flex; white-space: nowrap;
+    font: 900 var(--ws)/.8 var(--disp); font-stretch: 62%;
+    letter-spacing: 0; text-transform: uppercase;
+  }
+  .word i { display: block; font-style: normal; will-change: transform; }
+  .word b { display: block; font-weight: inherit; }
+  /* the reflection is wrong in two places: one letter never flipped, one letter lost its ink */
+  .twin .word i b { transform: scaleX(-1); }
+  .twin .word i.h { color: transparent; -webkit-text-stroke: max(2px, .05em) var(--ink); }
+
+  .say { display: grid; justify-items: end; }
+  .say > * { grid-area: 1 / 1; margin: 0; }
+  .line, .msg {
+    font: 800 clamp(22px, 1.3vw + 11px, 38px)/1.03 var(--disp); font-stretch: 72%;
+    letter-spacing: -.005em;
+  }
+  .line span, .msg span { display: block; }
+  .line { transition: opacity 180ms var(--out), transform 220ms var(--out), visibility 0s; }
+  .msg { visibility: hidden; opacity: 0; transform: translateY(8px); transition: opacity 240ms var(--out), transform 260ms var(--out), visibility 0s 260ms; }
+
+  .act { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .slot { display: grid; justify-items: end; }
+  .slot > * { grid-area: 1 / 1; }
+  .connect {
+    appearance: none; -webkit-appearance: none; border: 0; border-radius: 0; margin: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 252px; height: 64px; padding: 0 34px;
+    background: var(--ink); color: var(--pink);
+    font: 800 15px/1 var(--disp); font-stretch: 90%; letter-spacing: .22em; text-transform: uppercase;
+    transition: box-shadow 140ms var(--out), transform 140ms var(--out), opacity 180ms var(--out), visibility 0s;
+  }
+  .connect > span { margin-right: -.22em; }
+  .connect.hov, .connect:focus-visible { box-shadow: inset 0 0 0 4px var(--ink), inset 0 0 0 7px var(--pink); outline: none; }
+  .connect.press, .connect:active { transform: translateY(3px); }
+  .connect .busy { display: none; }
+  .connect .busy::after { content: "..."; display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; animation: dots 1s steps(4, jump-none) infinite; }
+  /* the twin's button is the colour inverted: the one thing it got backwards */
+  .twin .connect { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 3px var(--ink); }
+  .twin .connect.hov { box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 7px var(--pink), inset 0 0 0 10px var(--ink); }
+
+  .tag {
+    display: inline-flex; align-items: center; justify-content: flex-end; gap: 12px;
+    min-width: 252px; height: 64px; padding: 0 22px; margin: 0;
+    border: 3px solid var(--ink);
+    font: 500 13px/1 var(--mono); letter-spacing: .02em; white-space: nowrap;
+    visibility: hidden; opacity: 0; transform: translateY(6px);
+    transition: opacity 220ms var(--out), transform 220ms var(--out), visibility 0s 220ms;
+  }
+  .tag i { width: 10px; height: 10px; flex: none; background: var(--ink); order: 2; }
+
+  .how {
+    appearance: none; -webkit-appearance: none; background: none; border: 0; margin: 0; cursor: pointer;
+    padding: 13px 0 6px; font: 800 13px/1 var(--disp); font-stretch: 90%; letter-spacing: .2em; text-transform: uppercase;
+    text-decoration: underline 2px; text-underline-offset: 6px; white-space: nowrap;
+  }
+  .how > span { margin-right: -.2em; }
+  .how.hov, .how:focus-visible { text-decoration-thickness: 5px; outline: none; }
+  #ca:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+  /* states: idle -> busy -> scan -> done (the twin gets each one late) */
+  .half[data-state="busy"] .connect { cursor: progress; }
+  .half[data-state="busy"] .connect .idle { display: none; }
+  .half[data-state="busy"] .connect .busy { display: inline; }
+  .half[data-state="scan"] .connect, .half[data-state="done"] .connect { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 140ms var(--out), visibility 0s 140ms; }
+  .half[data-state="scan"] .tag, .half[data-state="done"] .tag { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .half[data-state="scan"] .tag i { animation: blink .26s steps(1, end) infinite; }
+  .half[data-state="done"] .tag i { animation: blink 1.6s steps(1, end) infinite; }
+  .half[data-state="done"] .line { opacity: 0; visibility: hidden; transform: translateY(-8px); transition: opacity 140ms var(--out), transform 180ms var(--out), visibility 0s 180ms; }
+  .half[data-state="done"] .msg { opacity: 1; visibility: visible; transform: none; transition-delay: 90ms, 90ms, 0s; }
+
+  @keyframes dots { to { width: 3ch; } }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* the contract is the only thing with no reflection: it runs down the seam */
+  #ca {
+    position: fixed; left: 50%; top: 50%; z-index: 5; transform: translate(-50%, -50%);
+    writing-mode: vertical-rl; margin: 0; padding: 18px 6px; border: 0; border-radius: 0;
+    background: var(--pink); color: var(--ink); cursor: pointer;
+    font: 500 12px/1 var(--mono); letter-spacing: .05em;
+  }
+  #ca.hov { text-decoration: underline 1.5px; text-underline-offset: 4px; }
+  #ca.ok { background: var(--ink); color: var(--pink); }
+
+  /* ------------------------------------------------------------ how it works */
+  #memo {
+    position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
+    margin: 0; padding: 0; border: 0; background: var(--ink); color: var(--pink);
+    overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--pink) var(--ink);
+    opacity: 0; transition: opacity 200ms var(--out);
+  }
+  #memo::backdrop { background: transparent; }
+  #memo.in { opacity: 1; }
+  #memo.out { opacity: 0; transition-duration: 140ms; }
+  #memo:focus { outline: none; }
+  .memo-bar {
+    position: sticky; top: 0; z-index: 2;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) var(--edge) 12px;
+    background: var(--ink); border-bottom: 2px solid var(--pink);
+  }
+  .memo-id { display: inline-flex; align-items: center; gap: 9px; font: 900 22px/1 var(--disp); font-stretch: 62%; }
+  .memo-id svg { width: 22px; height: 22px; fill: currentColor; }
+  .close {
+    appearance: none; -webkit-appearance: none; background: none; border: 0; margin: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px; padding: 10px 0;
+    font: 800 13px/1 var(--disp); font-stretch: 90%; letter-spacing: .2em; text-transform: uppercase; color: var(--pink);
+  }
+  .close kbd { font: 500 11px/1 var(--mono); letter-spacing: 0; text-transform: lowercase; border: 1.5px solid var(--pink); padding: 4px 6px; }
+  .close:hover, .close:focus-visible { text-decoration: underline 2px; text-underline-offset: 6px; outline: none; }
+  #memo-close { justify-self: end; }
+  .close.ghost { justify-self: start; transform: scaleX(-1); }
+
+  .doc { position: relative; width: min(1280px, 100% - 64px); margin: 0 auto; padding: 0 0 150px; transform: translateY(12px); transition: transform 300ms var(--out); }
+  #memo.in .doc { transform: none; }
+  .doc::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--pink); }
+  .doc-head, .meta, .doc section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 64px; }
+  .doc-head { padding: 60px 0 0; align-items: end; }
+  .doc-head h2, .doc-head .ghost { margin: 0; font: 900 clamp(64px, 9.4vw, 156px)/.8 var(--disp); font-stretch: 62%; text-transform: uppercase; text-align: right; }
+  .doc-head h2 span, .doc-head .ghost span { display: block; }
+  .doc-head h2 { grid-column: 1; justify-self: end; }
+  .doc-head .ghost { grid-column: 2; justify-self: start; transform: scaleX(-1); color: transparent; -webkit-text-stroke: 2px var(--pink); }
+  .spawn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 44px 0 0; }
+  .blk { border: 2px solid var(--pink); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .blk-h { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 2px solid var(--pink); font: 800 12px/1 var(--disp); letter-spacing: .2em; text-transform: uppercase; }
+  .blk pre { margin: 0; padding: 14px 12px; overflow-x: auto; white-space: pre; font: 400 12px/1.6 var(--mono); }
+  .cp { appearance: none; background: var(--pink); color: var(--ink); border: 0; cursor: pointer; padding: 6px 10px; font: 800 11px/1 var(--disp); letter-spacing: .14em; text-transform: uppercase; }
+  .cp.ok { background: var(--ink); color: var(--pink); box-shadow: inset 0 0 0 1.5px var(--pink); }
+  .doc .blk pre { grid-column: auto; grid-row: auto; flex: 1; margin: 0; padding: 14px 12px; background: var(--ink); color: var(--pink); font-size: 12px; }
+  .spawn { position: relative; z-index: 1; background: var(--ink); }
+  .blk-n { grid-column: 1 / -1; margin: 0; font: 400 15px/1.5 var(--disp); }
+  @media (max-width: 900px) { .spawn { grid-template-columns: minmax(0, 1fr); } }
+  .meta { margin: 34px 0 0; row-gap: 9px; }
+  .meta dt { text-align: right; font: 800 12px/1.75 var(--disp); font-stretch: 90%; letter-spacing: .2em; text-transform: uppercase; }
+  .meta dd { margin: 0; font: 400 15.5px/1.6 var(--disp); }
+  .doc section { padding-top: 72px; align-items: start; }
+  .doc h3 { grid-column: 1; margin: 0 0 20px; text-align: right; font: 900 clamp(30px, 2.6vw, 42px)/.92 var(--disp); font-stretch: 62%; text-transform: uppercase; }
+  .doc h3 span { display: block; margin-bottom: 10px; font: 500 12px/1 var(--mono); letter-spacing: .08em; }
+  .doc section > p { grid-column: 1; margin: 0 0 1em; font: 400 16.5px/1.62 var(--disp); text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+  .doc pre {
+    grid-column: 2; grid-row: 1 / span 6; align-self: start; margin: 0;
+    padding: 20px 22px; overflow-x: auto; white-space: pre; tab-size: 2;
+    background: var(--pink); color: var(--ink);
+    font: 400 12px/1.72 var(--mono); font-stretch: 75%;
+    scrollbar-width: thin; scrollbar-color: var(--ink) var(--pink);
+  }
+  .doc pre b { font-weight: 700; }
+  .doc pre sub { font-size: 11px; line-height: 0; }
+  .doc pre i { font-style: normal; background: var(--ink); color: var(--pink); padding: 0 3px; }
+  .doc pre u { text-decoration: none; font-style: italic; }
+  .doc .end { margin: 110px 0 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 64px; font: 800 12px/1 var(--disp); font-stretch: 90%; letter-spacing: .24em; text-transform: uppercase; }
+  .doc .end span:first-child { text-align: right; }
+  .doc .end span + span { transform: scaleX(-1); text-align: right; }
+
+  @media (max-width: 900px) {
+    .doc { width: calc(100% - 32px); }
+    .doc::before { display: none; }
+    .doc-head, .meta, .doc section, .doc .end { grid-template-columns: minmax(0, 1fr); }
+    .doc-head { padding-top: 36px; }
+    .doc-head h2 { justify-self: start; text-align: left; font-size: clamp(64px, 21vw, 120px); }
+    .doc-head .ghost { display: none; }
+    .meta { grid-template-columns: max-content minmax(0, 1fr); column-gap: 16px; }
+    .meta dt { text-align: left; }
+    .doc section { padding-top: 56px; }
+    .doc h3 { text-align: left; }
+    .doc section > p { font-size: 16px; text-align: left; hyphens: manual; -webkit-hyphens: manual; }
+    .doc pre { grid-column: 1; grid-row: auto; margin: 8px -16px 18px; padding: 16px; font-size: 11px; line-height: 1.66; }
+    .doc .end span + span { display: none; }
+    .doc .end span:first-child { text-align: left; }
+  }
+
+  /* ------------------------------------------------------------ phone */
+  @media (max-width: 640px) {
+    :root { --gap: 14px; --edge: 14px; }
+    .half { padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px)); }
+    .links { min-height: 38px; }
+    .mark { font-size: 34px; }
+    .hero { gap: 14px; }
+    .word { flex-direction: column; align-items: flex-end; line-height: .84; }
+    .line, .msg { font-size: 17px; line-height: 1.08; }
+    .act { width: 100%; align-items: stretch; }
+    .slot { width: 100%; justify-items: stretch; }
+    .connect, .tag { width: 100%; min-width: 0; height: 54px; }
+    .connect { padding: 0 6px; font-size: 12px; letter-spacing: .06em; }
+    .connect > span { margin-right: -.06em; }
+    .tag { padding: 0 10px; gap: 8px; font-size: 11px; justify-content: center; }
+    .how { align-self: flex-end; padding: 13px 0 2px; font-size: 11px; letter-spacing: .1em; line-height: 1.5; white-space: normal; text-align: right; text-underline-offset: 4px; }
+    .how > span { margin-right: -.1em; }
+    #ca { font-size: 11px; padding: 14px 4px; }
+    .memo-bar { padding-left: 16px; padding-right: 16px; }
+    .memo-id { font-size: 20px; }
+  }
+  @media (max-height: 560px) and (min-width: 641px) {
+    .connect, .tag { height: 50px; }
+    .line, .msg { font-size: 20px; }
+    .hero { gap: 12px; }
+  }
+  @media (pointer: coarse) { .close kbd { display: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; transition-delay: 0s !important; }
+  }
+</style>
+</head>
+<body>
+<canvas id="seam" aria-hidden="true"></canvas>
+<canvas id="ink" aria-hidden="true"></canvas>
+
+<main class="stage" id="stage">
+  <section class="half orig" id="orig">
+    <header class="top">
+      <nav class="links"><a class="x" href="https://github.com/ddllppcc/ddllpp" target="_blank" rel="noopener" aria-label="ddllpp on GitHub" data-hit><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8 0 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg></a><a class="x" href="https://x.com/ddllppcc" target="_blank" rel="noopener" aria-label="ddllpp on X" data-hit><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a></nav>
+      <p class="mark" aria-label="ddllpp">ddl</p>
+    </header>
+    <div class="hero">
+      <h1 class="word" aria-label="Clone"><i>C</i><i>L</i><i>O</i><i>N</i><i>E</i></h1>
+      <div class="say">
+        <p class="line"><span>AI agent that clones</span> <span>any Solana wallet&rsquo;s trading style.</span></p>
+        <p class="msg" aria-hidden="true"><span>Wallet ddoubled.</span> <span>Your ddouble wakes soon.</span></p>
+      </div>
+    </div>
+    <div class="act">
+      <div class="slot">
+        <button class="connect" id="connect" type="button" data-hit><span class="idle">Connect &amp; spawn</span><span class="busy">Spawning</span></button>
+        <p class="tag" aria-hidden="true"><i></i><span class="addr"></span></p>
+      </div>
+      <button class="how" id="how" type="button" aria-haspopup="dialog" aria-controls="memo" data-hit><span>Spawn locally via MCP</span></button>
+    </div>
+  </section>
+
+  <!-- the double: same page, flipped, a little wrong -->
+  <section class="half twin" id="twin" aria-hidden="true">
+    <header class="top">
+      <nav class="links"><a class="x" href="https://github.com/ddllppcc/ddllpp" target="_blank" rel="noopener" tabindex="-1" data-hit><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8 0 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg></a><a class="x" href="https://x.com/ddllppcc" target="_blank" rel="noopener" tabindex="-1" data-hit><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a></nav>
+      <p class="mark"><span>lpp</span></p>
+    </header>
+    <div class="hero">
+      <p class="word"><i>C</i><i>L</i><i class="h">O</i><i><b>N</b></i><i>E</i></p>
+      <div class="say">
+        <p class="line"><span>AI agent that clones</span> <span>any Solana wallet&rsquo;s trading style.</span></p>
+        <p class="msg"><span>Wallet ddoubled.</span> <span>Your ddouble is awake.</span></p>
+      </div>
+    </div>
+    <div class="act">
+      <div class="slot">
+        <button class="connect" type="button" tabindex="-1" data-hit data-proxy="connect"><span class="idle">Connect &amp; spawn</span><span class="busy">Spawning</span></button>
+        <p class="tag"><i></i><span class="addr"></span></p>
+      </div>
+      <button class="how" type="button" tabindex="-1" data-hit data-proxy="how"><span>Spawned locally via MCP</span></button>
+    </div>
+  </section>
+</main>
+
+<button id="ca" type="button" title="copy" hidden data-hit></button>
+<canvas id="cur" aria-hidden="true"></canvas>
+<p class="sr" id="live" role="status" aria-live="polite"></p>
+
+<dialog id="memo" aria-labelledby="memo-title">
+  <div class="memo-bar">
+    <button class="close ghost" type="button" tabindex="-1" aria-hidden="true" data-close>Close</button>
+    <span class="memo-id"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M2.88 25.5V6.5H9.12Q11.44 6.5 12.71 7.51Q13.98 8.52 14.49 10.59Q15 12.66 15 15.92Q15 19.15 14.46 21.27Q13.92 23.4 12.62 24.45Q11.33 25.5 9.01 25.5ZM7.93 21.14H8.7Q9.12 21.14 9.37 20.96Q9.61 20.78 9.71 20.38Q9.81 19.98 9.84 19.36Q9.86 18.73 9.86 17.88V14.54Q9.86 13.65 9.84 12.98Q9.81 12.3 9.71 11.83Q9.61 11.36 9.37 11.11Q9.12 10.86 8.7 10.86H7.93Z"/><path d="M15.74 24.56 18.38 5.75 24.56 6.62Q26.86 6.94 27.98 8.12Q29.09 9.29 29.31 11.41Q29.53 13.53 29.08 16.76Q28.63 19.96 27.8 21.99Q26.97 24.02 25.54 24.88Q24.11 25.74 21.81 25.42ZM21.35 20.95 22.11 21.05Q22.52 21.11 22.8 20.97Q23.07 20.83 23.22 20.44Q23.37 20.06 23.48 19.45Q23.6 18.84 23.72 17.99L24.18 14.68Q24.3 13.8 24.37 13.13Q24.44 12.46 24.41 11.98Q24.38 11.5 24.17 11.22Q23.95 10.94 23.54 10.88L22.78 10.77Z"/></svg>ddllpp</span>
+    <button class="close" id="memo-close" type="button" autofocus data-close>Close <kbd>esc</kbd></button>
+  </div>
+
+  <article class="doc">
+    <header class="doc-head">
+      <h2 id="memo-title"><span>How it</span> <span>works</span></h2>
+      <p class="ghost" aria-hidden="true"><span>How it</span> <span>worked</span></p>
+    </header>
+    <div class="spawn">
+      <div class="blk"><div class="blk-h"><span>Claude Code</span><button class="cp" type="button">Copy</button></div><pre>claude mcp add ddllpp -- npx -y github:ddllppcc/ddllpp</pre></div>
+      <div class="blk"><div class="blk-h"><span>Codex</span><button class="cp" type="button">Copy</button></div><pre>codex mcp add ddllpp -- npx -y github:ddllppcc/ddllpp</pre></div>
+      <div class="blk"><div class="blk-h"><span>Cursor</span><button class="cp" type="button">Copy</button></div><pre>{
+  "mcpServers": {
+    "ddllpp": {
+      "command": "npx",
+      "args": ["-y", "github:ddllppcc/ddllpp"]
+    }
+  }
+}</pre></div>
+      <p class="blk-n">Repo: <a href="https://github.com/ddllppcc/ddllpp" target="_blank" rel="noopener">github.com/ddllppcc/ddllpp</a>. Then ask your agent: <b>spawn the double of &lt;wallet&gt;</b>.</p>
+    </div>
+    <dl class="meta">
+      <dt>Re</dt><dd>Behavioural cloning of a single wallet, end to end.</dd>
+      <dt>Object</dt><dd>A policy that acts as the wallet acts, in the slot it would.</dd>
+      <dt>State</dt><dd>Closed. Doubles wake at release.</dd>
+      <dt>Handling</dt><dd>Read it twice.</dd>
+    </dl>
+
+    <section>
+      <h3><span>&sect;00</span>Abstract</h3>
+      <p>doppel builds the double of one wallet. A copy-trader echoes a fill after it lands; doppel learns why the fill happened. A policy model is trained on the wallet&rsquo;s entire on-chain history &mdash; every entry, every size, every exit, and the silence between them &mdash; then run in shadow against live slots, where it writes down what it would do before the original does it.</p>
+      <p>When its replay matches the original across the market regimes that wallet has lived through, the double wakes, and trades as that wallet, from yours.</p>
+<pre><b>pipeline</b> doppel(target) {
+  history  = backfill(target, from = first_signature)
+  actor    = siblings(target)            <u>// one trader, many keys</u>
+  episodes = segment(history &cup; actor)    <u>// entry &rarr; adds &rarr; trims &rarr; flat</u>
+  states   = as_of(episodes)             <u>// the world at each slot, nothing later</u>
+  &pi;        = clone(states &rarr; actions)     <u>// behavioural cloning + reward prior</u>
+  <b>shadow</b>(&pi;, live_slots) until replay(&pi;) &equiv; target
+  <b>trade</b>(&pi;, signer = you, caps = yours)  <i>soon</i>
+}</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;01</span>The original</h3>
+      <p>Any wallet can be shadowed; not every wallet should be woken. doppel ranks originals by long, dense, self-consistent histories &mdash; styles that held through quiet tapes and hot ones &mdash; and refuses everything that only looks like a trader: program-owned accounts, routers, market makers, MEV searchers, exchange hot wallets, airdrop farms.</p>
+      <p>It also refuses crowded wallets. If a wallet&rsquo;s fills are already shadowed by copiers inside the same slot, cloning it clones the exit liquidity it sells into.</p>
+<pre><b>select</b> target <b>from</b> wallets
+<b>where</b>  span(history)            &gt;= W
+  <b>and</b>  count(episodes)          &gt;= N
+  <b>and</b>  not program_owned(target)
+  <b>and</b>  not cex_hot(target)
+  <b>and</b>  not searcher(target)      <u>-- bundles against others</u>
+  <b>and</b>  copiers_same_slot(target) &lt; C
+                                   <u>-- crowded = exit liquidity</u>
+<b>order by</b> consistency(target, regimes) desc</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;02</span>Backfill, all of it</h3>
+      <p>A wallet&rsquo;s history is not an API response. Signatures come back newest-first and paged, and the long tail sits in cold archive. doppel walks the address back to its first signature and rebuilds every transaction from the ledger archive itself &mdash; epoch CAR files, blocks, entries &mdash; because indexer summaries drop exactly what a clone needs: failed attempts, inner instructions, the order of transactions inside a slot, and the compute budget and tip that rode with each one.</p>
+<pre>cursor = None
+<b>loop</b>:
+  page = getSignaturesForAddress(target, before=cursor, limit=L)
+  <b>for</b> sig <b>in</b> page:
+    blk = archive.block(sig.slot)      <u># epoch &rarr; CAR &rarr; block</u>
+    tx  = blk.find(sig)                <u># v0, lookup tables resolved</u>
+    <b>for</b> ix <b>in</b> walk(tx.message, tx.meta.innerInstructions):
+      <b>if</b> ix.program <b>in</b> VENUES &cup; {system, spl_token, token_2022,
+                                 ata, compute_budget}:
+        emit(decode(ix), key=(sig.slot, tx.index, ix.path))
+  cursor = page.last
+  <b>until</b> page.empty
+
+VENUES = pump.fun &middot; PumpSwap &middot; Raydium AMM v4 / CPMM / CLMM
+       &middot; Meteora DLMM / DAMM v2 &middot; Orca Whirlpools
+       &middot; Jupiter v6 routes, resolved to their legs</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;03</span>One trader, many keys</h3>
+      <p>Good wallets rarely trade from one key. They fund burners, sweep profit into cold addresses, sell from a sibling while the main stays quiet. doppel walks the funding graph in both directions &mdash; SOL and token transfers, shared fee payers, shared rent payers, identical account-creation layouts, timing too regular to be two people &mdash; and folds the cluster into one actor.</p>
+      <p>A sell from a sibling is an exit. A deposit to an exchange is an exit with a delay.</p>
+<pre><b>actor</b>(target):
+  E = transfers(target, depth &lt;= d, both directions)
+    &cup; shared_fee_payer(target) &cup; shared_rent_payer(target)
+    &cup; same_ata_layout(target)  &cup; co_timed(target, window=w)
+  K = community(E).containing(target)
+  K = { k &isin; K : co_trades(k, target)
+                &and; &not;cex_hot(k) &and; &not;program_owned(k) }
+  <b>return</b> Actor { keys: K, root: target }</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;04</span>Episodes, and the coins it skipped</h3>
+      <p>The trade log is cut into episodes: first touch of a mint, adds, trims, flat. Each step is labelled &mdash; entry, add, trim, exit &mdash; with size kept as a fraction of the actor&rsquo;s bankroll at that moment, never as a raw amount.</p>
+      <p>The hardest label leaves no transaction at all: the skip. A skip is a coin that crossed the wallet&rsquo;s field of view and was not bought. Field of view is rebuilt from what the wallet provably watched &mdash; devs it bought before, launch windows it trades in, mints it touched later.</p>
+<pre><b>struct</b> Episode {
+  mint     Pubkey
+  actor    ActorId
+  open     Slot
+  close    Slot | open
+  steps    Vec&lt;Step&gt;
+}
+<b>enum</b> Step {
+  Entry { frac_bankroll, route: Venue, cu_limit, tip }
+  Add   { frac_bankroll }
+  Trim  { frac_position }
+  Exit  { frac_position, to: Venue | Sibling | Cex }
+  Skip  { seen_at: Slot }   <u>// the negatives carry half the signal</u>
+}</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;05</span>The world, as of that slot</h3>
+      <p>Every step is paired with the state of the world at its slot and nothing after it: curve reserves, pool depth on both sides, holder graph, dev funding, the actor&rsquo;s own inventory and cost basis, free SOL, time since its last action, the tape of recent launches, the priority-fee climate. All of it is rebuilt point-in-time from account history, never read from today&rsquo;s RPC.</p>
+      <p>One leak from the future teaches the model to be psychic in training and blind live, so the feature store drops any row whose source is newer than its decision slot.</p>
+<pre><b>struct</b> State @ s {
+  curve    { v_sol, v_tok, r_sol, r_tok, complete }   as_of s
+  pool     { depth_bid, depth_ask, lp_burned }        as_of s
+  holders  { top_k, concentration, fresh_share }      as_of s
+  dev      { funding_hops, prior_launches, sold }     as_of s
+  self     { inventory, cost_basis, sol_free, since_last }
+  tape     { last_fills(mint, n), last_launches(n) }
+  fees     { prio_quantiles(s-w .. s), tip_floor }
+}
+<b>invariant</b>  &forall; f &isin; State :  f.source_slot &lt;= s
+           <u>// else the row is dropped, not patched</u></pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;06</span>The policy</h3>
+      <p>The policy is a sequence model over the actor&rsquo;s own life. Tokens are events &mdash; launches it could see, fills on mints it holds, its own actions, transfers between its keys &mdash; positioned by slot, not by wall clock.</p>
+      <p>Four heads, factorized. Whether to act and when, as a hazard over the next slots, so timing is learned rather than thresholded. How much, as a fraction of bankroll. How to leave, as a distribution over trims and exits. Which route, with what compute budget and tip.</p>
+<pre>&pi;<sub>&theta;</sub>(a<sub>t</sub> | e<sub>&le;t</sub>) = P<sub>&theta;</sub>(act, k  | e<sub>&le;t</sub>)      <u># act at slot t+k</u>
+             &middot; P<sub>&theta;</sub>(size    | act, e<sub>&le;t</sub>) <u># fraction of bankroll</u>
+             &middot; P<sub>&theta;</sub>(exit    | size, e<sub>&le;t</sub>)<u># trim schedule</u>
+             &middot; P<sub>&theta;</sub>(route, cu, tip | e<sub>&le;t</sub>)
+
+h<sub>&theta;</sub>(k | e<sub>&le;t</sub>) = P(act at t+k | no act in t .. t+k-1)
+
+tokens   launch_seen | fill(mint) | own(step) | transfer(k&rarr;k')
+position slot, not wall clock
+heads    act&middot;k  size  exit  route</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;07</span>Cloning, then correcting</h3>
+      <p>Training starts as behavioural cloning: maximize the likelihood of what the actor actually did, in the states it actually saw. Cloning alone drifts. One small mistake puts the double in a state the original never visited, where it has no data, and the error compounds.</p>
+      <p>So the double is corrected on its own trajectories from shadow. States it reached by itself are labelled with what the original did next, and folded back into training.</p>
+<pre>L(&theta;) = &minus; &Sigma;<sub>ep</sub> &Sigma;<sub>t</sub>  log &pi;<sub>&theta;</sub>(a*<sub>t</sub> | e<sub>&le;t</sub>)       <u># cloning</u>
+       &minus; &lambda; &Sigma;<sub>sh</sub> &Sigma;<sub>t</sub> log &pi;<sub>&theta;</sub>(a*<sub>t</sub> | e&prime;<sub>&le;t</sub>)      <u># on shadow states</u>
+       + &mu; &middot; KL( &pi;<sub>&theta;</sub> &Vert; &pi;<sub>&psi;</sub> )                <u># reward prior</u>
+
+<b>for</b> round <b>in</b> 1..R:
+  D_shadow += rollout(&pi;<sub>&theta;</sub>, live) &bowtie; label(original)
+  &theta;         = fit(D_history &cup; D_shadow)</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;08</span>The reward under the style</h3>
+      <p>Copying actions memorizes coins. To act on a coin the actor never saw, doppel also recovers the reward the actor appears to optimize &mdash; how much drawdown it sits through, how it trades size against slippage, how fast it gives up on a dead curve, what it does when a dev sells &mdash; with maximum-entropy inverse reinforcement learning over the same episodes.</p>
+      <p>The recovered reward becomes the prior wherever history is thin.</p>
+<pre>r<sub>&psi;</sub>(s, a) = &psi; &middot; &phi;(s, a)
+  <u># &phi;: drawdown, impact, hold, dev_sold, curve_age, &hellip;</u>
+
+&psi;*  = argmax<sub>&psi;</sub>  E<sub>actor</sub>[ r<sub>&psi;</sub> ] &minus; log Z<sub>&psi;</sub>      <u># max-ent IRL</u>
+&pi;<sub>&psi;</sub>  = softmax<sub>a</sub> Q<sub>r<sub>&psi;</sub></sub>(s, a)
+     <u># the policy the reward implies; prior where data is thin</u></pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;09</span>Shadow mode</h3>
+      <p>Before it touches a wallet, the double lives in shadow. It subscribes to live slots over Yellowstone gRPC &mdash; accounts and transactions for every venue in the set, at processed commitment, merged with shreds for early order &mdash; rebuilds the same as-of state that training saw, and commits what it would do, with a slot, before the original acts.</p>
+      <p>When the original&rsquo;s transaction lands, the two are compared. Every miss is kept with the full state that produced it, and becomes training data.</p>
+<pre>shadow  double/9f2  &harr;  original/7Hq&hellip;
+<u>slot   mint       double           original         verdict</u>
+s+0    9vK&hellip;pump  entry b3   s+0   entry b3   s+0   match
+s+3    9vK&hellip;pump  trim  b1   s+3   trim  b1   s+4   match <u>(window)</u>
+s+7    Ex2&hellip;pump  skip             skip             match
+s+9    4Lr&hellip;pump  entry b2   s+9   &mdash;                <i>miss</i> &rarr; kept
+s+12   9vK&hellip;pump  exit  all  s+12  exit  all  s+12  match
+s+12   &mdash;          <b>tomb</b> s+11/fork &mdash; rows retracted in order</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;10</span>Replay match</h3>
+      <p>The double wakes when its replay matches the original &mdash; on live slots it has never seen, never on the history it was trained on. Match is defined head by head: decisions agree, sizes fall in the same bucket, exits land inside the same window, skips agree with skips.</p>
+      <p>The agreement has to hold across every regime the actor trades in, and it has to hold now. You set the bar. Until it is crossed the double stays a shadow, and a shadow never signs.</p>
+<pre><b>wake</b>(double) :=
+     &forall; head &isin; {act, size, exit, route} :
+         agree(head, live[-n:]) &gt;= &tau;<sub>head</sub>     <u># &tau;: yours</u>
+  &and;  regimes(live[-n:]) &supe; regimes(actor)
+  &and;  &not;drift(actor, live[-n:])
+  &and;  &not;break(actor)
+
+<b>state</b>  shadow &rarr; awake &rarr; dormant &rarr; shadow</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;11</span>Drift, breaks, dormancy</h3>
+      <p>People change. A wallet that shifts style, goes quiet, is handed to someone else or gets drained is a different original. doppel watches the divergence between the double&rsquo;s action distribution and the original&rsquo;s live actions.</p>
+      <p>Slow drift triggers a refit on the newest episodes. A break &mdash; a sweep to fresh keys, a new sibling set, a jump in size regime, a change in venue habits &mdash; sends the double dormant until it has been shadowed again from zero.</p>
+<pre>D<sub>t</sub> = KL( &pi;<sub>&theta;</sub>(&middot; | e<sub>&le;t</sub>) &Vert; &pi;&#770;<sub>actor</sub>(&middot; | e<sub>&le;t</sub>) )   <u># ewma, live</u>
+
+<b>if</b> D<sub>t</sub> &gt; &delta;<sub>refit</sub>  : refit(newest episodes); stay awake
+<b>if</b> break(actor) : dormant(double); shadow from zero
+
+break := sweep_to_new_keys &or; siblings_changed
+       &or; size_regime_jump  &or; venue_mix_shift</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;12</span>Acting from your wallet</h3>
+      <p>When the double acts, it acts from your wallet and nowhere else. You grant a scoped session signer &mdash; which programs it may call, a cap per trade, a cap per day, an expiry &mdash; and revoke it with one signature. doppel never holds your funds or your seed.</p>
+      <p>Size is rescaled from the original&rsquo;s fraction of bankroll to yours, then clipped so your fill moves the curve no more than the original&rsquo;s did. Transactions go out as v0 with lookup tables, a compute limit fitted to the route, a fee priced from the live climate, and through a bundle when the original&rsquo;s own history says it bundles.</p>
+<pre><b>grant</b> session {
+  signer     ed25519 session key      <u># never your seed</u>
+  programs   [pump.fun, PumpSwap, Raydium, Meteora, Orca, Jupiter]
+  per_trade  you set
+  per_day    you set
+  expires    you set
+  revoke     one signature, any time
+}
+
+size<sub>you</sub> = clip( frac_bankroll(original) &middot; bankroll(you),
+                max_impact(curve | pool, as_of s, like=original) )
+tx      = v0 { alts, cu_limit=fit(route), cu_price=climate(s),
+               tip=habit(original) }</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;13</span>Leading</h3>
+      <p>A double that only follows is late by construction. Once awake, it can act at the slot its hazard head crosses your line &mdash; which can come before the original&rsquo;s own transaction lands. Leading is off by default. It is a setting you turn on, and it stays inside your caps.</p>
+<pre>lead := awake(double) &and; enabled_by(you)
+
+<b>at</b> slot t:
+  <b>if</b> lead &and; h<sub>&theta;</sub>(0 | e<sub>&le;t</sub>) &gt;= &tau;<sub>lead</sub> :  send(order)
+  <b>else on</b> confirmed(original.tx)    :  send(order)</pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;14</span>Bait</h3>
+      <p>Wallets that know they are copied lay bait: a loud entry into thin liquidity, sold into the copiers a slot later. To the double, bait is one more pattern of the original &mdash; entries it exits inside the copier window, sized against depth instead of bankroll. The double learns the pattern and skips it. It copies how the wallet trades, never how it performs for an audience.</p>
+<pre>bait(e) := e.exit &minus; e.entry &lt;= copier_window
+         &and; e.size / depth(e.mint, as_of e.entry) is high
+         &and; copiers_same_slot(e.mint) &gt; 0
+
+<b>mask</b> Entry <b>if</b> P<sub>&theta;</sub>(bait | e<sub>&le;t</sub>) &gt;= &tau;<sub>bait</sub></pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;15</span>The web layer</h3>
+      <p>The page you are on is the thinnest layer, and it is still a system. Phantom over Wallet Standard. Sign-In With Solana for sessions, checked server-side against ed25519 with a nonce, never a transaction. The shadow streams to the browser over SSE from the same slot-ordered log the double reads, tombstones included, so what you watch is what it runs.</p>
+      <p>Every decision is kept as a trace you can open: the slot, the state it saw, what each head said, the order it sent, where it landed.</p>
+<pre><b>POST</b> /api/siws                  &rarr; session          <u># ed25519, nonce</u>
+<b>GET</b>  /api/shadow/:target  (SSE) &rarr; ShadowRow*       <u># forks tombstoned</u>
+<b>GET</b>  /api/trace/:double/:slot   &rarr; Trace { state, heads,
+                                         order, landed }
+<b>PUT</b>  /api/grant                 &rarr; Grant            <u># caps, programs</u>
+<b>DEL</b>  /api/grant                 &rarr; revoked          <u># also on-chain</u></pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;16</span>Non-goals</h3>
+      <p>There is no signals channel, no leaderboard of doubles to stare at, no custody, and no promise about what a double will make.</p>
+<pre>signals      <i>no</i>
+leaderboard  <i>no</i>
+custody      <i>no</i>
+promises     <i>no</i></pre>
+    </section>
+
+    <section>
+      <h3><span>&sect;17</span>Access</h3>
+      <p>Closed for now. Every wallet that connects is mirrored into the release list. Doubles wake at release.</p>
+<pre>status    <b>closed</b>
+list      every connected wallet, mirrored
+ticker    <b>$DDLLPP</b>
+release   <i>soon</i></pre>
+    </section>
+
+    <p class="end"><span>&mdash; end of memo &mdash;</span><span aria-hidden="true">&mdash; end of memo &mdash;</span></p>
+  </article>
+</dialog>
+
+<script type="module">
+import { createMirror } from './engine/mirror.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const root = document.documentElement;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const stage = $('#stage'), orig = $('#orig'), twin = $('#twin');
+
+/* ------------------------------------------------------------ the word fills its half */
+// typed = what you typed over the big word; echo = the double's doubled copy (null = its own word)
+let typed = '', echo = null, restWs = 0;
+const typing = () => typed !== '' || echo !== null;
+function fit() {
+  const wo = $('.word', orig), wt = $('.word', twin);
+  root.style.setProperty('--ws', '100px');
+  const ro = wo.getBoundingClientRect(), rt = wt.getBoundingClientRect();
+  const cs = getComputedStyle(orig);
+  const avail = orig.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  let ws = (100 * avail) / Math.max(1, ro.width, rt.width);
+  if (innerWidth <= 640) ws = Math.min(ws, (100 * innerHeight * 0.54) / Math.max(1, ro.height, rt.height));
+  else ws = Math.min(ws, innerHeight * 0.4);
+  if (typing()) ws = Math.min(ws, restWs || ws); // a typed word never outgrows the resting one
+  else restWs = ws;
+  root.style.setProperty('--ws', Math.max(typing() ? 24 : 40, ws).toFixed(1) + 'px');
+}
+fit();
+
+/* ------------------------------------------------------------ the double */
+let mirror = null;
+try {
+  mirror = createMirror({ seam: $('#seam'), cur: $('#cur'), ink: $('#ink'), stage, orig, twin });
+  window.mirror = mirror;
+} catch (e) {
+  mirror = null;
+}
+const dirty = () => mirror && mirror.dirty();
+addEventListener('resize', () => { fit(); dirty(); });
+addEventListener('ca', dirty);
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  fit(); dirty();
+  setTimeout(() => { window.__ready = true; }, reduced ? 200 : 1900);
+});
+
+// a click on the page hands it the wheel for a moment (a drag draws instead)
+stage.addEventListener('click', (e) => {
+  if (e.target.closest('a, button')) return;
+  if (mirror && mirror.drew) return;
+  if (mirror) mirror.takeover();
+});
+
+// the tab's reflection: leave, and the double's name takes the tab
+const TITLE = document.title;
+document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'ddllpp' : TITLE; });
+
+/* ------------------------------------------------------------ connect */
+const btn = $('#connect');
+const addrO = $('.addr', orig), addrT = $('.addr', twin);
+const live = $('#live');
+const LAGS = reduced ? 0 : 380;
+let phase = 'idle', seq = 0, twinT = 0, typeT = 0;
+
+function stateOf(el, p) { if (p === 'idle') delete el.dataset.state; else el.dataset.state = p; }
+function setPhase(p) {
+  phase = p;
+  stateOf(orig, p);
+  clearTimeout(twinT);
+  twinT = setTimeout(() => { stateOf(twin, p); dirty(); }, LAGS); // the twin always finds out late
+  btn.setAttribute('aria-busy', String(p === 'busy'));
+  dirty();
+}
+const short = (a) => (a.length > 10 ? a.slice(0, 4) + '…' + a.slice(-4) : a);
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const offByOne = (s) => s.slice(0, -1) + B58[(B58.indexOf(s.slice(-1)) + 1) % B58.length];
+const phone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+
+function phantom() {
+  const w = window;
+  if (w.phantom && w.phantom.solana) return w.phantom.solana;
+  if (w.solana && w.solana.isPhantom) return w.solana;
+  return null;
+}
+
+async function connect() {
+  if (phase !== 'idle') return;
+  const p = phantom();
+  if (!p) {
+    if (phone) location.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href) + '?ref=' + encodeURIComponent(location.origin);
+    else window.open('https://phantom.app/download', '_blank', 'noopener');
+    return;
+  }
+  setPhase('busy');
+  try {
+    const res = await p.connect();
+    const key = (res && res.publicKey) || p.publicKey;
+    const addr = key ? String(key.toString()) : '';
+    if (!addr) throw new Error('no public key');
+    listen(p);
+    await reveal(addr);
+  } catch (e) {
+    if (phase === 'busy') setPhase('idle'); // rejected: quietly back
+  }
+}
+btn.addEventListener('click', connect);
+
+async function reveal(addr) {
+  const my = ++seq;
+  addrO.textContent = short(addr);
+  addrT.textContent = '';
+  setPhase('scan');
+  typeTwin(offByOne(short(addr)), my); // its copy of your wallet, one character wrong
+  if (mirror) mirror.script('scan');
+  await wait(reduced ? 0 : 1800);
+  if (my !== seq) return;
+  setPhase('done');
+  live.textContent = 'Wallet ddoubled. Your ddouble wakes soon.';
+}
+
+function typeTwin(s, my) {
+  clearInterval(typeT);
+  if (reduced) { addrT.textContent = s; return; }
+  let i = 0;
+  setTimeout(() => {
+    clearInterval(typeT);
+    typeT = setInterval(() => {
+      if (my !== seq) return clearInterval(typeT);
+      addrT.textContent = s.slice(0, ++i);
+      if (i >= s.length) clearInterval(typeT);
+    }, 70);
+  }, LAGS + 160);
+}
+
+function reset() {
+  seq++;
+  clearInterval(typeT);
+  setPhase('idle');
+  live.textContent = '';
+}
+
+let heard = null;
+function listen(p) {
+  if (heard === p || typeof p.on !== 'function') return;
+  heard = p;
+  try {
+    p.on('accountChanged', (key) => {
+      if (phase !== 'scan' && phase !== 'done') return;
+      if (key) { const s = short(String(key.toString())); addrO.textContent = s; addrT.textContent = offByOne(s); }
+      else reset();
+    });
+    p.on('disconnect', () => { if (phase !== 'idle') reset(); });
+  } catch (e) { /* provider without events */ }
+}
+
+/* ------------------------------------------------------------ how it works */
+const memo = $('#memo');
+let closing = 0;
+function openMemo() {
+  if (memo.open) return;
+  memo.classList.remove('out');
+  memo.showModal();
+  memo.scrollTop = 0;
+  if (mirror) mirror.pause(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => memo.classList.add('in')));
+}
+function closeMemo() {
+  if (!memo.open || closing) return;
+  memo.classList.remove('in');
+  memo.classList.add('out');
+  closing = setTimeout(() => { closing = 0; memo.close(); }, reduced ? 0 : 150);
+}
+memo.addEventListener('close', () => {
+  clearTimeout(closing);
+  closing = 0;
+  memo.classList.remove('in', 'out');
+  if (mirror) mirror.pause(false);
+});
+memo.addEventListener('cancel', (e) => { e.preventDefault(); closeMemo(); });
+memo.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); closeMemo(); } });
+memo.addEventListener('click', (e) => { const b = e.target.closest('.cp'); if (!b) return; navigator.clipboard?.writeText(b.closest('.blk').querySelector('pre').textContent).catch(() => {}); b.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('ok'); }, 1200); });
+memo.addEventListener('click', (e) => { if (e.target === memo || e.target.closest('[data-close]')) closeMemo(); });
+$('#how').addEventListener('click', openMemo);
+
+// the double's buttons work too: it does it for you
+twin.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-proxy]');
+  if (!b) return;
+  if (b.dataset.proxy === 'connect') connect();
+  else if (b.dataset.proxy === 'how') openMemo();
+});
+
+/* ------------------------------------------------------------ type: it types it back, twice */
+// keys write over the big word on your side; the double hears it late and types every letter twice
+const wO = $('.word', orig), wT = $('.word', twin);
+const REST_O = wO.innerHTML, REST_T = wT.innerHTML;
+const MAXC = 8;
+let echoT = 0, untypeT = 0;
+const twice = (s) => s.replace(/./g, '$&$&');
+function paintO() { wO.innerHTML = typed ? [...typed].map((c) => `<i>${c}</i>`).join('') : REST_O; }
+function paintT() {
+  if (echo === null) { wT.innerHTML = REST_T; return; }
+  let h = '';
+  for (let i = 0; i < echo.length; i += 2) h += `<i>${echo.slice(i, i + 2)}</i>`;
+  wT.innerHTML = h;
+}
+const relayout = () => { fit(); dirty(); };
+
+// one keystroke of the double toward your word, doubled; the second letter of a pair comes fast
+function chase() {
+  echoT = 0;
+  const goal = twice(typed);
+  if (echo === null) echo = '';
+  if (reduced) echo = goal;
+  else if (goal.startsWith(echo)) echo = goal.slice(0, echo.length + 1);
+  else echo = echo.slice(0, -1);
+  if (echo === goal && !typed) echo = null; // both empty: its own word comes back
+  paintT(); relayout();
+  if (echo !== null && echo !== goal) echoT = setTimeout(chase, echo.length % 2 ? 48 : 96);
+}
+const hear = () => { if (!echoT) echoT = setTimeout(chase, LAGS); };
+
+// left alone, your word deletes itself and the double follows it down
+function untype() {
+  untypeT = 0;
+  if (!typed) return;
+  typed = reduced ? '' : typed.slice(0, -1);
+  paintO(); relayout(); hear();
+  if (typed) untypeT = setTimeout(untype, 60);
+}
+
+addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || memo.open) return;
+  const k = e.key;
+  if (k.length === 1 && /[a-z0-9$]/i.test(k)) { if (typed.length >= MAXC) return; typed += k; }
+  else if (k === 'Backspace' && typed) typed = typed.slice(0, -1);
+  else if (k === 'Escape' && typed) typed = '';
+  else return;
+  e.preventDefault();
+  paintO(); relayout(); hear();
+  if (mirror) mirror.poke();
+  clearTimeout(untypeT);
+  untypeT = setTimeout(untype, 3600);
+});
+</script>
+<script>fetch('ca.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){var c=d&&String(d.ca||'').trim();if(!c)return;var b=document.getElementById('ca');b.textContent=c;b.hidden=false;b.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(c).catch(function(){});b.classList.add('ok');setTimeout(function(){b.classList.remove('ok')},450)};dispatchEvent(new Event('ca'))}).catch(function(){})</script>
+</body>
+</html>
