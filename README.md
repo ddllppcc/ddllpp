@@ -1,14 +1,8 @@
 <p align="center">
-  <img src=".github/assets/banner.jpg" alt="" width="100%">
-</p>
-
-<p align="center">
-  <img src=".github/assets/avatar.jpg" alt="ddllpp" width="120">
+  <img src=".github/assets/banner.jpg" alt="AI agent that clones any Solana wallet's trading style." width="100%">
 </p>
 
 <h1 align="center">ddllpp</h1>
-
-<p align="center"><b>AI agent that clones any Solana wallet's trading style.</b></p>
 
 <p align="center">
   <a href="https://ddllpp.cc">ddllpp.cc</a> &nbsp;·&nbsp;
@@ -89,14 +83,5 @@ Run the site locally:
 ```bash
 cd site && python3 -m http.server 8080
 ```
-
-<br>
-
-<p align="center">
-  <img src=".github/assets/heads-dark.jpg" alt="" width="96">
-  <img src=".github/assets/avatar.jpg" alt="" width="96">
-  <img src=".github/assets/heads-light.jpg" alt="" width="96">
-  <img src=".github/assets/heads-cream.jpg" alt="" width="96">
-</p>
 
 <p align="center"><sub>MIT · every trade, twice</sub></p>
